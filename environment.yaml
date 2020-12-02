@@ -1,0 +1,4 @@
+name: acre
+
+dependencies:
+  - python=3.8
