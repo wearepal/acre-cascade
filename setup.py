@@ -30,23 +30,23 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "pillow",
-        "scikit_learn >= 0.20.1",
-        "seaborn >= 0.9.0",
-        "tqdm >= 4.31.1",
-        "typing-extensions >= 3.7.2",
+        "scikit_learn",
+        "seaborn",
+        "tqdm",
+        "typing-extensions",
     ],
     extras_require={
         "ci": [
-            "pytest >= 3.3.2",
-            "pytest-cov >= 2.6.0",
-            "torch == 1.5.0",
-            "torchvision == 0.6.0",
+            "pytest",
+            "pytest-cov",
+            "torch",
+            "torchvision",
         ],
         # use `pip install .[dev]` to install development packages
         "dev": [
             "black",
             "data-science-types",
-            "isort == 5.5.4",
+            "isort",
             "mypy",
             "pydocstyle",
             "pylint",
