@@ -39,6 +39,7 @@ setup(
         "ci": [
             "pytest",
             "pytest-cov",
+            "requests",
             "torch",
             "torchvision",
         ],

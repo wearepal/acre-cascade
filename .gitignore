@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Project specific dirs to ignore
+/ACRE_Cascade_Starter.egg-info/
+/crops/
