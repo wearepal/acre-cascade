@@ -196,7 +196,7 @@ class AcreCascadeDataset(_SizedDataset):
         return img, mask, int(entry["group"]), int(entry["crop"])  # type: ignore
 
 
-def prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
+def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
     """Splits a dataset based on a proportions rather than on absolute sizes."""
     len_ = len(dataset)
     if (sum_ := (np.sum(props)) > 1.0) or any(prop < 0 for prop in props):
@@ -265,7 +265,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         # Assign Train/val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
             labeled_data = AcreCascadeDataset(self.data_dir, train=True)
-            val_data, train_data = prop_random_split(labeled_data, props=(self.val_pcnt,))
+            val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
             # Wrap the datasets in the DataTransformer class to allow for separate transformations
             # to be applied to the training and validation sets (this would not be possible if the
             # the transformations were a property of the dataset itself as random_split just creates
