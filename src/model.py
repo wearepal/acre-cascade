@@ -2,6 +2,7 @@
 
 import pytorch_lightning as pl
 import torch
+import torch.nn.functional as F
 from pl_examples.domain_templates.unet import UNet
 from torch import nn
 from torch.utils.data import DataLoader
