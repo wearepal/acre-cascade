@@ -50,8 +50,8 @@ class SegModel(pl.LightningModule):
             [
                 transforms.ToTensor(),
                 transforms.Normalize(
-                    mean=[0.35675976, 0.37380189, 0.3764753],
-                    std=[0.32064945, 0.32098866, 0.32325324],
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5],
                 ),
             ]
         )
