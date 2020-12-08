@@ -30,6 +30,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "pillow",
+        "pytorch-lightning",
         "scikit_learn",
         "seaborn",
         "tqdm",
