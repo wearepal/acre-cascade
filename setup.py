@@ -27,38 +27,14 @@ setup(
     url="https://competitions.codalab.org/competitions/27176",
     packages=find_packages(exclude=["tests.*", "tests"]),
     package_data={},
-    python_requires=">=3.6",
+    python_requires=">=3.9",
     install_requires=[
         "pillow",
         "pytorch-lightning",
         "scikit_learn",
         "seaborn",
         "tqdm",
+        "requests",
         "typing-extensions",
     ],
-    extras_require={
-        "ci": [
-            "pytest",
-            "pytest-cov",
-            "requests",
-            "torch",
-            "torchvision",
-        ],
-        # use `pip install .[dev]` to install development packages
-        "dev": [
-            "black",
-            "data-science-types",
-            "isort",
-            "mypy",
-            "pydocstyle",
-            "pylint",
-            "pytest",
-            "pytest-cov",
-            "pre-commit",
-        ],
-    },
-    classifiers=[  # classifiers can be found here: https://pypi.org/classifiers/
-        "Programming Language :: Python :: 3",
-    ],
-    zip_safe=False,
 )
