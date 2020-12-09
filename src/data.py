@@ -12,12 +12,10 @@ from typing import (
     Iterator,
     List,
     Optional,
-    Protocol,
     Sequence,
     Tuple,
     Union,
     cast,
-    get_args,
 )
 from urllib.request import urlopen
 
@@ -34,7 +32,7 @@ from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
 import torchvision.transforms.functional as F
 from tqdm import tqdm
-from typing_extensions import Literal
+from typing_extensions import Literal, Protocol, get_args
 
 from src.utils import implements
 
@@ -46,6 +44,8 @@ Crop = Literal["Haricot", "Mais"]
 TrainBatch = namedtuple("TrainBatch", ["image", "mask", "team", "crop"])
 TestBatch = namedtuple("TestBatch", ["image", "team", "crop"])
 InputShape = namedtuple("InputShape", ["c", "h", "w"])
+ImageSize = namedtuple("ImageSize", ["width", "height"])
+Transform = Callable[[Union[Image.Image, Tensor]], Tensor]
 
 
 def _download_from_url(url: str, dst: str) -> int:
@@ -70,9 +70,6 @@ def _download_from_url(url: str, dst: str) -> int:
                 pbar.update(1024)
     pbar.close()
     return file_size
-
-
-Transform = Callable[[Union[Image.Image, Tensor]], Tensor]
 
 
 class _SizedDatasetProt(Protocol):
@@ -104,9 +101,6 @@ class _DataTransformer(_SizedDataset):
         if len(data) == 4:
             return TrainBatch(*data)
         return TestBatch(*data)
-
-
-ImageSize = namedtuple("ImageSize", ["width", "height"])
 
 
 def _patches_from_img_mask_pair(
@@ -175,12 +169,12 @@ class AcreCascadeDataset(_SizedDataset):
         )
         # Filter the data by team, if a particular team is specified
         if team is not None:
-            self.data = self.data.query(expr=f"team == {team}", axis=0)
+            self.data = self.data.query(expr=f"team == {team}")
         # Filter the data by crop, if a particular crop is specified
         if crop is not None:
-            self.data = self.data.query(expr=f"crop == {crop}", axis=0)
+            self.data = self.data.query(expr=f"crop == {crop}")
         # Index-encode the categorical variables (team/crop)
-        cat_cols = self.data.select_dtypes(["category"]).columns
+        cat_cols = self.data.select_dtypes(["category"]).columns  # type: ignore
         # dtype needs to be int64 for the labels to be compatible with CrossEntropyLoss
         self.data[cat_cols] = self.data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))
         self._target_transform = ToTensor()
@@ -247,7 +241,7 @@ class AcreCascadeDataset(_SizedDataset):
             for team in get_args(Team):
                 for crop in get_args(Crop):
                     image_folder = split_folder / team / crop / "Images"
-                    image_fps = []
+                    image_fps: List[Path] = []
                     # Images are not in a consistent format so multiple extensions need to be checked
                     for extension in extensions:
                         image_fps.extend(image_folder.glob(f"**/{extension}"))
@@ -274,7 +268,7 @@ class AcreCascadeDataset(_SizedDataset):
                             data_dict["crop"].append(crop)
                         pbar.update()
                     pbar.close()
-            data_df = pd.DataFrame(data_dict)
+            data_df = pd.DataFrame(data_dict)  # type: ignore
             # Save the dataframe to the split-specific folder
             data_df.to_csv(split_folder / "data.csv")
 
@@ -296,16 +290,13 @@ class AcreCascadeDataset(_SizedDataset):
 def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
     """Splits a dataset based on a proportions rather than on absolute sizes."""
     len_ = len(dataset)
-    sum_ = np.sum(props)
+    sum_ = np.sum(props)  # type: ignore
     if (sum_ > 1.0) or any(prop < 0 for prop in props):
         raise ValueError("Values for 'props` must be positive and sum to 1 or less.")
     section_sizes = [round(prop * len_) for prop in props]
     if sum_ < 1:
         section_sizes.append(len_ - sum(section_sizes))
     return random_split(dataset, section_sizes)
-
-
-STAGE = Literal["fit", "test"]
 
 
 class AcreCascadeDataModule(pl.LightningDataModule):

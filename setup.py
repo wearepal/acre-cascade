@@ -27,10 +27,11 @@ setup(
     url="https://competitions.codalab.org/competitions/27176",
     packages=find_packages(exclude=["tests.*", "tests"]),
     package_data={},
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     install_requires=[
         "pillow",
         "pytorch-lightning",
+        "torchvision",
         "scikit_learn",
         "seaborn",
         "tqdm",
