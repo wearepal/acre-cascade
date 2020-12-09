@@ -77,7 +77,7 @@ class SegModel(pl.LightningModule, ABC):
         return self(batch.image)
 
     @implements(pl.LightningModule)
-    def validation_epoch_end(self, outputs) -> Dict[str, Any]:
+    def validation_epoch_end(self, outputs: List[Dict[str, Any]]) -> Dict[str, Any]:
         loss_val = torch.stack([x["val_loss"] for x in outputs]).mean()
         log_dict = {"val_loss": loss_val}
         return {
