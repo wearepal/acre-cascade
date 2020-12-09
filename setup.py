@@ -37,4 +37,17 @@ setup(
         "requests",
         "typing-extensions",
     ],
+    extras_require={
+        "dev": [
+            "black",
+            "data-science-types",
+            "isort",
+            "mypy",
+            "pydocstyle",
+            "pylint",
+            "pytest",
+            "pytest-cov",
+            "pre-commit",
+        ],
+    },
 )

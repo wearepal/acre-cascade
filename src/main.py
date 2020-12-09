@@ -1,35 +1,57 @@
 """Mian script to run."""
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
-from src.model import SegModel
+from src.data import AcreCascadeDataModule
+from src.model import UNetSegModel
+import typer
 
 
-class HParams(dataclass):
-    """Haparams. to replace with typer."""
-
-    log_wandb = False
-
-
-def main():
+def experiment(
+    data_dir: Path = typer.Option("data", "--data-dir", "-d"),
+    train_batch_size: int = typer.Option(16, "--train-batch-size"),
+    val_batch_size: int = typer.Option(32, "--val-batch-size"),
+    val_pcnt: float = typer.Option(0.2, "--val-pcnt"),
+    num_workers: int = typer.Option(4, "--num-workers"),
+    learning_rate: float = typer.Option(1.0e-3, "--learning_rate", "-lr"),
+    num_layers: int = typer.Option("--num-layers"),
+    features_start: int = typer.Option("--features_start"),
+    bilinear: bool = typer.Option(False, "--bilinear"),
+    log_to_wandb: bool = typer.Option(False, "--log-to-wandb"),
+    gpus: int = typer.Option(0, "--gpus"),
+    epochs: int = typer.Option(100, "--epochs"),
+    use_amp: bool = typer.Option(False, "--use_amp"),
+) -> None:
     """Main script."""
-    hparams = HParams()
 
+    dm = AcreCascadeDataModule(
+        data_dir=data_dir,
+        train_batch_size=train_batch_size,
+        val_batch_size=val_batch_size,
+        val_pcnt=val_pcnt,
+        num_workers=num_workers,
+    )
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = SegModel(**vars(hparams))
+    model = UNetSegModel(
+        num_classes=dm.num_classes,
+        num_layers=num_layers,
+        features_start=features_start,
+        learning_rate=learning_rate,
+        bilinear=bilinear,
+    )
 
     # ------------------------
     # 2 SET LOGGER
     # ------------------------
     logger = False
-    if hparams.log_wandb:
+    if log_to_wandb:
         logger = WandbLogger()
-
         # optional: log model topology
         logger.watch(model.net)
 
@@ -37,12 +59,10 @@ def main():
     # 3 INIT TRAINER
     # ------------------------
     trainer = pl.Trainer(
-        gpus=hparams.gpus,
+        gpus=gpus,
         logger=logger,
-        max_epochs=hparams.epochs,
-        accumulate_grad_batches=hparams.grad_batches,
-        distributed_backend=hparams.distributed_backend,
-        precision=16 if hparams.use_amp else 32,
+        max_epochs=epochs,
+        precision=16 if use_amp else 32,
     )
 
     # ------------------------
@@ -52,4 +72,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    experiment()
