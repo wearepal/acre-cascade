@@ -137,7 +137,8 @@ class AcreCascadeDataset(_SizedDataset):
         )
         # Index-encode the categorical variables (group/crop)
         cat_cols = self.data.select_dtypes(["category"]).columns
-        self.data[cat_cols] = self.data[cat_cols].apply(lambda x: x.cat.codes)
+        # dtype needs to be int64 for the labels to be compatible with CrossEntropyLoss
+        self.data[cat_cols] = self.data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))
         self._target_transform = ToTensor()
 
     def _check_downloaded(self) -> bool:
@@ -193,7 +194,7 @@ class AcreCascadeDataset(_SizedDataset):
             mask = self._target_transform(mask_t)
         else:
             mask = None
-        return img, mask, int(entry["group"]), int(entry["crop"])  # type: ignore
+        return img, mask, entry["group"], entry["crop"]  # type: ignore
 
 
 def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
@@ -264,7 +265,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         """Set up the data-module by instantiating the splits relevant to the given stage."""
         # Assign Train/val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
-            labeled_data = AcreCascadeDataset(self.data_dir, train=True)
+            labeled_data = AcreCascadeDataset(self.data_dir, train=True, download=False)
             val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
             # Wrap the datasets in the DataTransformer class to allow for separate transformations
             # to be applied to the training and validation sets (this would not be possible if the
@@ -276,7 +277,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
 
         # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
-            test_data = AcreCascadeDataset(self.data_dir, train=False)
+            test_data = AcreCascadeDataset(self.data_dir, train=False, download=False)
             self.test_data = _DataTransformer(test_data, transforms=self.test_transforms)
             self.dims = getattr(self, "dims", self.test_data[0][0].shape)
 
