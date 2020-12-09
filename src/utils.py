@@ -1,8 +1,12 @@
 """Utility functions."""
 
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Callable, Literal, Type, TypeVar
 
 _F = TypeVar("_F", bound=Callable[..., Any])
+
+Teams = Literal["BipBip", "Pead", "Roseau", "Weedelec"]
+
+Crops = Literal["Haricot", "Mais"]
 
 
 class implements:  # pylint: disable=invalid-name

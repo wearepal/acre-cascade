@@ -1,8 +1,8 @@
 """Script containing data-loading functionality."""
 
+import os
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
-import os
 from pathlib import Path
 from typing import (
     Any,
@@ -19,18 +19,18 @@ from typing import (
 )
 from urllib.request import urlopen
 
-from PIL import Image
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
+import torchvision.transforms.functional as F
+from PIL import Image
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
-import torchvision.transforms.functional as F
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
@@ -118,7 +118,9 @@ def _patches_from_img_mask_pair(
         .reshape(6, -1, kernel_size, kernel_size)
     )
     image_patches, mask_patches = patches.chunk(2, dim=0)
-    for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
+    for image_patch, mask_patch in zip(
+        image_patches.unbind(dim=1), mask_patches.unbind(dim=1)
+    ):
         yield (F.to_pil_image(image_patch), F.to_pil_image(mask_patch))
 
 
@@ -167,7 +169,8 @@ class AcreCascadeDataset(_SizedDataset):
         else:
             split_folder = self._dataset_folder / self.test_folder_name
         self.data = cast(
-            pd.DataFrame, pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0)
+            pd.DataFrame,
+            pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0),
         )
         # Filter the data by team, if a particular team is specified
         if team is not None:
@@ -178,7 +181,9 @@ class AcreCascadeDataset(_SizedDataset):
         # Index-encode the categorical variables (team/crop)
         cat_cols = self.data.select_dtypes(["category"]).columns  # type: ignore
         # dtype needs to be int64 for the labels to be compatible with CrossEntropyLoss
-        self.data[cat_cols] = self.data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))
+        self.data[cat_cols] = self.data[cat_cols].apply(
+            lambda x: x.cat.codes.astype("int64")
+        )
         self._target_transform = ToTensor()
 
     def _check_downloaded(self) -> bool:
@@ -201,18 +206,25 @@ class AcreCascadeDataset(_SizedDataset):
         # Divide the images into patches and save them
         for patch_num, (image_patch, mask_patch) in enumerate(
             _patches_from_img_mask_pair(
-                image=image, mask=mask, kernel_size=self.patch_size, stride=self.patch_stride
+                image=image,
+                mask=mask,
+                kernel_size=self.patch_size,
+                stride=self.patch_stride,
             )
         ):
             image_patch_path = image_patch_dir / f"{image_fp.stem}_{patch_num}.png"
             with image_patch as file:
                 file.save(image_patch_path)
-            filepaths["image"].append(str(image_patch_path.relative_to(self._dataset_folder)))
+            filepaths["image"].append(
+                str(image_patch_path.relative_to(self._dataset_folder))
+            )
 
             mask_patch_path = mask_patch_dir / f"{image_fp.stem}_{patch_num}.png"
             with mask_patch as file:
                 file.save(mask_patch_path)
-            filepaths["mask"].append(str(mask_patch_path.relative_to(self._dataset_folder)))
+            filepaths["mask"].append(
+                str(mask_patch_path.relative_to(self._dataset_folder))
+            )
 
         return filepaths
 
@@ -247,7 +259,9 @@ class AcreCascadeDataset(_SizedDataset):
                     # Images are not in a consistent format so multiple extensions need to be checked
                     for extension in extensions:
                         image_fps.extend(image_folder.glob(f"**/{extension}"))
-                    pbar = tqdm(total=len(image_fps), desc=f"{split_folder_name}/{team}/{crop}")
+                    pbar = tqdm(
+                        total=len(image_fps), desc=f"{split_folder_name}/{team}/{crop}"
+                    )
                     for image_fp in tqdm(image_fps):
                         # Only the training data has masks available (these are our targets)
                         if split_folder_name == self.train_folder_name:
@@ -354,21 +368,29 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     def setup(self, stage: Optional[Stage] = None) -> None:
         """Set up the data-module by instantiating the splits relevant to the given stage."""
         # Assign Train/val split(s) for use in Dataloaders
-        if stage == "fit" or stage is None:  # fitting entails bothing training and validation
+        if (
+            stage == "fit" or stage is None
+        ):  # fitting entails bothing training and validation
             labeled_data = AcreCascadeDataset(self.data_dir, train=True, download=False)
-            val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
+            val_data, train_data = _prop_random_split(
+                labeled_data, props=(self.val_pcnt,)
+            )
             # Wrap the datasets in the DataTransformer class to allow for separate transformations
             # to be applied to the training and validation sets (this would not be possible if the
             # the transformations were a property of the dataset itself as random_split just creates
             # an index mask).
-            self.train_data = _DataTransformer(train_data, transforms=self.train_transforms)
+            self.train_data = _DataTransformer(
+                train_data, transforms=self.train_transforms
+            )
             self.val_data = _DataTransformer(val_data, transforms=self.test_transforms)
             self.dims = InputShape(*self.train_data[0].image.shape)
 
         # # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
             test_data = AcreCascadeDataset(self.data_dir, train=False, download=False)
-            self.test_data = _DataTransformer(test_data, transforms=self.test_transforms)
+            self.test_data = _DataTransformer(
+                test_data, transforms=self.test_transforms
+            )
             self.dims = getattr(self, "dims", self.test_data[0].image.shape)
 
     def train_dataloader(self) -> DataLoader:
