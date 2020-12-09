@@ -32,7 +32,8 @@ from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
 import torchvision.transforms.functional as F
 from tqdm import tqdm
-from typing_extensions import Literal, Protocol, get_args
+from typing_extensions import Literal, Protocol
+from typing_inspect import get_args
 
 from src.utils import implements
 

@@ -37,6 +37,7 @@ setup(
         "tqdm",
         "requests",
         "typing-extensions",
+        "typing-inspect",
     ],
     extras_require={
         "dev": [
