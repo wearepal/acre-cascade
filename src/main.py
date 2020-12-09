@@ -1,6 +1,5 @@
 """Mian script to run."""
 
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytorch_lightning as pl
@@ -17,14 +16,14 @@ def experiment(
     val_batch_size: int = typer.Option(32, "--val-batch-size"),
     val_pcnt: float = typer.Option(0.2, "--val-pcnt"),
     num_workers: int = typer.Option(4, "--num-workers"),
-    learning_rate: float = typer.Option(1.0e-3, "--learning_rate", "-lr"),
+    learning_rate: float = typer.Option(1.0e-3, "--learning-rate", "-lr"),
     num_layers: int = typer.Option("--num-layers"),
-    features_start: int = typer.Option("--features_start"),
+    features_start: int = typer.Option("--features-start"),
     bilinear: bool = typer.Option(False, "--bilinear"),
     log_to_wandb: bool = typer.Option(False, "--log-to-wandb"),
     gpus: int = typer.Option(0, "--gpus"),
     epochs: int = typer.Option(100, "--epochs"),
-    use_amp: bool = typer.Option(False, "--use_amp"),
+    use_amp: bool = typer.Option(False, "--use-amp"),
 ) -> None:
     """Main script."""
 
