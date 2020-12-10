@@ -3,12 +3,11 @@ from pathlib import Path
 from typing import Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import WandbLogger
 import typer
+from pytorch_lightning.loggers import WandbLogger
 
 from src.data import AcreCascadeDataModule
 from src.model import UNetSegModel
-
 
 app = typer.Typer()
 
@@ -29,6 +28,7 @@ def experiment(
     epochs: int = typer.Option(100, "--epochs"),
     use_amp: bool = typer.Option(False, "--use-amp"),
     seed: Optional[int] = typer.Option(47, "--seed"),
+    download: bool = typer.Option(False, "--dl"),
 ) -> None:
     """Main script."""
     # Set all seeds for reproducibility
@@ -43,6 +43,7 @@ def experiment(
         val_batch_size=val_batch_size,
         val_pcnt=val_pcnt,
         num_workers=num_workers,
+        download=download,
     )
 
     # ------------------------
