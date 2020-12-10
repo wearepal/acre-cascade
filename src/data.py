@@ -1,8 +1,8 @@
 """Script containing data-loading functionality."""
 
-import os
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
+import os
 from pathlib import Path
 from typing import (
     Any,
@@ -19,18 +19,18 @@ from typing import (
 )
 from urllib.request import urlopen
 
+from PIL import Image
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
-import torchvision.transforms.functional as F
-from PIL import Image
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
+import torchvision.transforms.functional as F
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
@@ -105,12 +105,12 @@ class _DataTransformer(_SizedDataset):
         return TestBatch(*data)
 
 
-def _patches_from_img_mask_pair(
+def _patches_from_image_mask_pair(
     image: Image, mask: Image, kernel_size: int, stride: int
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
     image_t = F.to_tensor(image)
     mask_t = F.to_tensor(mask)
-    combined = torch.cat([image_t, mask_t], dim=0)
+    combined = torch.cat([image_t, mask_t], dim=0)  # type: ignore[no-member]
 
     patches = (
         combined.unfold(dimension=1, size=kernel_size, step=stride)
@@ -168,20 +168,33 @@ class AcreCascadeDataset(_SizedDataset):
             dtypes["mask"] = "string"
         else:
             split_folder = self._dataset_folder / self.test_folder_name
-        self.data = cast(
+        data = cast(
             pd.DataFrame,
             pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0),
         )
         # Filter the data by team, if a particular team is specified
         if team is not None:
-            self.data = self.data.query(expr=f"team == {team}")
+            data = data.query(expr=f"team == {team}")
         # Filter the data by crop, if a particular crop is specified
         if crop is not None:
-            self.data = self.data.query(expr=f"crop == {crop}")
+            data = data.query(expr=f"crop == {crop}")
+        # Process the categorical values
+        cat_cols = ["team", "crop"]
+        # Construct a dictionaries to map back from categorical values to index values
+        self.team_decoder = dict(enumerate(data["team"].cat.categories))  # type: ignore
+        self.crop_decoder = dict(enumerate(data["crop"].cat.categories))  # type: ignore
         # Index-encode the categorical variables (team/crop)
-        cat_cols = self.data.select_dtypes(["category"]).columns  # type: ignore
         # dtype needs to be int64 for the labels to be compatible with CrossEntropyLoss
-        self.data[cat_cols] = self.data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))
+        data[cat_cols] = data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))
+
+        # Divide up the dataframe into it's constituent arrays because indexing with pandas is
+        # many times slower than indexing with numpy/torch
+        self.image_fps = data["image"].values
+        self.mask_fps = data["mask"].values if self.train else None
+        self.teams = torch.as_tensor(data["team"].values)
+        self.crops = torch.as_tensor(data["crop"])
+
+        # THe transformation applied to the mask
         self._target_transform = ToTensor()
 
     def _check_downloaded(self) -> bool:
@@ -203,7 +216,7 @@ class AcreCascadeDataset(_SizedDataset):
         filepaths: Dict[str, List[str]] = defaultdict(list)
         # Divide the images into patches and save them
         for patch_num, (image_patch, mask_patch) in enumerate(
-            _patches_from_img_mask_pair(
+            _patches_from_image_mask_pair(
                 image=image,
                 mask=mask,
                 kernel_size=self.patch_size,
@@ -247,7 +260,9 @@ class AcreCascadeDataset(_SizedDataset):
             data_dict: Dict[str, List[str]] = defaultdict(list)
             split_folder = self._dataset_folder / split_folder_name
             for team in get_args(Team):
+                team = cast(str, team)
                 for crop in get_args(Crop):
+                    crop = cast(str, crop)
                     image_folder = split_folder / team / crop / "Images"
                     image_fps: List[Path] = []
                     # Images are not in a consistent format so multiple extensions need to be checked
@@ -282,17 +297,18 @@ class AcreCascadeDataset(_SizedDataset):
 
     @implements(_SizedDataset)
     def __len__(self):
-        return len(self.data)
+        return len(self.image_fps)
 
     @implements(_SizedDataset)
     def __getitem__(self, index: int) -> Union[TrainBatch, TestBatch]:
-        entry = cast(pd.DataFrame, self.data.iloc[index])
-        img = Image.open(self._dataset_folder / entry["image"])  # type: ignore
-        if self.train:
-            mask_t = Image.open(self._dataset_folder / entry["mask"])  # type: ignore
+        image = Image.open(self._dataset_folder / self.image_fps[index])
+        team = self.teams[index]
+        crop = self.crops[index]
+        if self.mask_fps is not None:
+            mask_t = Image.open(self._dataset_folder / self.mask_fps[index])
             mask = self._target_transform(mask_t)
-            return TrainBatch(img, mask, entry["team"], entry["crop"])  # type: ignore
-        return TestBatch(img, entry["team"], entry["crop"])  # type: ignore
+            return TrainBatch(image=image, mask=mask, team=team, crop=crop)
+        return TestBatch(image=image, team=team, crop=crop)
 
 
 def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:

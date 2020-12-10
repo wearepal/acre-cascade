@@ -1,5 +1,6 @@
 """Main script to run."""
 from pathlib import Path
+from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -27,11 +28,12 @@ def experiment(
     gpus: int = typer.Option(0, "--gpus"),
     epochs: int = typer.Option(100, "--epochs"),
     use_amp: bool = typer.Option(False, "--use-amp"),
-    seed: int = typer.Option(42, "--seed"),
+    seed: Optional[int] = typer.Option(47, "--seed"),
 ) -> None:
     """Main script."""
     # Set all seeds for reproducibility
-    pl.seed_everything(seed=seed)
+    if seed is not None:
+        pl.seed_everything(seed=seed)
     # ------------------------
     # 1 INIT DATAMODULE
     # ------------------------
@@ -42,6 +44,7 @@ def experiment(
         val_pcnt=val_pcnt,
         num_workers=num_workers,
     )
+
     # ------------------------
     # 2 INIT LIGHTNING MODEL
     # ------------------------
