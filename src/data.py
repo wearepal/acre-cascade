@@ -1,8 +1,8 @@
 """Script containing data-loading functionality."""
 
+import os
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
-import os
 from pathlib import Path
 from typing import (
     Any,
@@ -19,18 +19,18 @@ from typing import (
 )
 from urllib.request import urlopen
 
-from PIL import Image
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
+import torchvision.transforms.functional as F
+from PIL import Image
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
-import torchvision.transforms.functional as F
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
@@ -372,7 +372,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def prepare_data(self) -> None:
         """Download the ACRE Cascade Dataset if not already present in the root directory."""
-        AcreCascadeDataset(data_dir=self.data_dir, download=True)
+        AcreCascadeDataset(data_dir=self.data_dir, download=self.download)
 
     @implements(pl.LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:
