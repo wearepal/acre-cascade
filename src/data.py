@@ -180,7 +180,7 @@ class AcreCascadeDataset(_SizedDataset):
             data = data.query(expr=f"crop == {crop}")
         # Process the categorical values
         cat_cols = ["team", "crop"]
-        # Construct a dictionaries to map back from categorical values to index values
+        # Construct  dictionaries to map back from categorical values to index values
         self.team_decoder = dict(enumerate(data["team"].cat.categories))  # type: ignore
         self.crop_decoder = dict(enumerate(data["crop"].cat.categories))  # type: ignore
         # Index-encode the categorical variables (team/crop)
