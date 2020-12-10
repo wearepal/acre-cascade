@@ -1,8 +1,8 @@
 """Script containing data-loading functionality."""
 
+import os
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
-import os
 from pathlib import Path
 from typing import (
     Any,
@@ -19,25 +19,25 @@ from typing import (
 )
 from urllib.request import urlopen
 
-from PIL import Image
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
+import torchvision.transforms.functional as F
+from PIL import Image
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
-import torchvision.transforms.functional as F
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
 
 from src.utils import implements
 
-__all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch"]
+__all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
 
 
 Team = Literal["Bipbip", "Pead", "Roseau", "Weedelec"]
@@ -123,6 +123,8 @@ def _patches_from_img_mask_pair(
 
 
 class AcreCascadeDataset(_SizedDataset):
+    """Acre Cascade dataset."""
+
     url: ClassVar[
         str
     ] = "https://competitions.codalab.org/my/datasets/download/29a85805-2d8d-4701-a9ab-295180c89eb3"
@@ -167,7 +169,8 @@ class AcreCascadeDataset(_SizedDataset):
         else:
             split_folder = self._dataset_folder / self.test_folder_name
         self.data = cast(
-            pd.DataFrame, pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0)
+            pd.DataFrame,
+            pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0),
         )
         # Filter the data by team, if a particular team is specified
         if team is not None:
@@ -201,7 +204,10 @@ class AcreCascadeDataset(_SizedDataset):
         # Divide the images into patches and save them
         for patch_num, (image_patch, mask_patch) in enumerate(
             _patches_from_img_mask_pair(
-                image=image, mask=mask, kernel_size=self.patch_size, stride=self.patch_stride
+                image=image,
+                mask=mask,
+                kernel_size=self.patch_size,
+                stride=self.patch_stride,
             )
         ):
             image_patch_path = image_patch_dir / f"{image_fp.stem}_{patch_num}.png"
@@ -302,6 +308,8 @@ def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[S
 
 
 class AcreCascadeDataModule(pl.LightningDataModule):
+    """PyTorch Lightning Data Module for the Acre Cascade dataset."""
+
     train_data: _SizedDataset
     val_data: _SizedDataset
     dims: InputShape
@@ -353,7 +361,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:
         """Set up the data-module by instantiating the splits relevant to the given stage."""
-        # Assign Train/val split(s) for use in Dataloaders
+        # Assign Train/Val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
             labeled_data = AcreCascadeDataset(self.data_dir, train=True, download=False)
             val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
@@ -371,6 +379,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
             self.test_data = _DataTransformer(test_data, transforms=self.test_transforms)
             self.dims = getattr(self, "dims", self.test_data[0].image.shape)
 
+    @implements(pl.LightningDataModule)
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
             self.train_data,
@@ -381,6 +390,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
             drop_last=True,
         )
 
+    @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
         return DataLoader(
             self.val_data,
@@ -391,6 +401,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
             drop_last=False,
         )
 
+    @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.test_data,

@@ -3,11 +3,10 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
-from pl_examples.domain_templates.unet import UNet
 import pytorch_lightning as pl
 import torch
+from pl_examples.domain_templates.unet import UNet
 from torch import nn
-import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -42,7 +41,7 @@ class SegModel(pl.LightningModule, ABC):
 
     @abstractmethod
     def build(self) -> nn.Module:
-        """Builds the underlying segmentation network"""
+        """Builds the underlying segmentation network."""
         ...
 
     @implements(nn.Module)
@@ -88,6 +87,8 @@ class SegModel(pl.LightningModule, ABC):
 
 
 class UNetSegModel(SegModel):
+    """UNet based Segmentation model."""
+
     def __init__(
         self,
         num_classes: int,
