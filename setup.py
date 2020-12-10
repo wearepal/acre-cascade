@@ -31,34 +31,26 @@ setup(
     install_requires=[
         "pillow",
         "pytorch-lightning",
+        "requests",
         "scikit_learn",
         "seaborn",
+        "torchvision",
         "tqdm",
+        "typer",
         "typing-extensions",
+        "typing-inspect",
     ],
     extras_require={
-        "ci": [
-            "pytest",
-            "pytest-cov",
-            "requests",
-            "torch",
-            "torchvision",
-        ],
-        # use `pip install .[dev]` to install development packages
         "dev": [
             "black",
             "data-science-types",
             "isort",
             "mypy",
+            "pre-commit",
             "pydocstyle",
             "pylint",
             "pytest",
             "pytest-cov",
-            "pre-commit",
         ],
     },
-    classifiers=[  # classifiers can be found here: https://pypi.org/classifiers/
-        "Programming Language :: Python :: 3",
-    ],
-    zip_safe=False,
 )
