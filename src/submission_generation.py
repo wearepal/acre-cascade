@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from src.utils import Crops, Teams
+from src import Crop, Team
 
 
 @dataclass
@@ -21,8 +21,8 @@ class Submission:
     """Submission definition."""
 
     shape: List[int]
-    team: Teams
-    crop: Crops
+    team: Team
+    crop: Crop
     segmentation: Segmentation
 
 
@@ -42,7 +42,7 @@ def rle_encode(img: np.ndarray) -> str:
 
 
 def sample_to_submission(
-    filename: str, team_name: Teams, crop_name: Crops, mask: np.ndarray
+    filename: str, team_name: Team, crop_name: Crop, mask: np.ndarray
 ) -> Tuple[str, Submission]:
     """For a sample, convert to json ready to be zipped and uploaded.
 
