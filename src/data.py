@@ -361,7 +361,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:
         """Set up the data-module by instantiating the splits relevant to the given stage."""
-        # Assign Train/val split(s) for use in Dataloaders
+        # Assign Train/Val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
             labeled_data = AcreCascadeDataset(self.data_dir, train=True, download=False)
             val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
