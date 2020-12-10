@@ -31,17 +31,17 @@ class SegModel(pl.LightningModule, ABC):
     def __init__(
         self,
         num_classes: int,
-        learning_rate: float = 1.0e-3,
+        lr: float = 1.0e-3,
     ):
         super().__init__()
-        self.learning_rate = learning_rate
+        self.learning_rate = lr
         self.num_classes = num_classes
 
         self.loss_fn = nn.CrossEntropyLoss()
         self.net = self.build()
 
     @abstractmethod
-    def build() -> nn.Module:
+    def build(self) -> nn.Module:
         """Builds the underlying segmentation network"""
         ...
 
@@ -72,7 +72,7 @@ class SegModel(pl.LightningModule, ABC):
         loss_val = self.loss_fn(out, mask)
         return {"val_loss": loss_val}
 
-    @implements(pl.LightningDataModule)
+    @implements(pl.LightningModule)
     def test_step(self, batch: TestBatch, batch_idx: int) -> Tensor:
         return self(batch.image)
 
@@ -94,19 +94,20 @@ class UNetSegModel(SegModel):
         num_layers: int,
         features_start: int,
         bilinear: bool,
-        learning_rate: float,
+        lr: float,
     ):
-        super().__init__(
-            num_classes=num_classes,
-            learning_rate=learning_rate,
-        )
         self.num_layers = num_layers
         self.features_start = features_start
         self.bilinear = bilinear
 
+        super().__init__(
+            num_classes=num_classes,
+            lr=lr,
+        )
+
     @implements(SegModel)
-    def build(self) -> None:
-        self.net = UNet(
+    def build(self) -> nn.Module:
+        return UNet(
             num_classes=self.num_classes,
             num_layers=self.num_layers,
             features_start=self.features_start,

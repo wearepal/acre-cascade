@@ -47,6 +47,7 @@ TestBatch = namedtuple("TestBatch", ["image", "team", "crop"])
 InputShape = namedtuple("InputShape", ["c", "h", "w"])
 ImageSize = namedtuple("ImageSize", ["width", "height"])
 Transform = Callable[[Union[Image.Image, Tensor]], Tensor]
+Stage = Literal["fit", "test"]
 
 
 def _download_from_url(url: str, dst: str) -> int:
@@ -350,7 +351,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         AcreCascadeDataset(data_dir=self.data_dir, download=True)
 
     @implements(pl.LightningDataModule)
-    def setup(self, stage: Optional[STAGE] = None) -> None:
+    def setup(self, stage: Optional[Stage] = None) -> None:
         """Set up the data-module by instantiating the splits relevant to the given stage."""
         # Assign Train/val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
