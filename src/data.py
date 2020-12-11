@@ -192,14 +192,14 @@ class AcreCascadeDataset(_SizedDataset):
             pd.DataFrame,
             pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0),
         )
-        # Filter the data by team, if a particular team is specified
+        # Filter the data by team(s)
         if teams is not None:
             if isinstance(teams, str):
                 teams = [teams]
-            data = data.query(expr=f"team == {teams}")
+            data.query(expr=f"team == {teams}", inplace=True)  # type: ignore
         # Filter the data by crop, if a particular crop is specified
         if crop is not None:
-            data = data.query(expr=f"crop == '{crop}'")
+            data.query(expr=f"crop == '{crop}'", inplace=True)  # type: ignore
         # Process the categorical values
         cat_cols = ["team", "crop"]
         # Construct  dictionaries to map back from categorical values to index values
