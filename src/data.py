@@ -131,7 +131,7 @@ class IndexEncodeMask:
             (216, 67, 81): 2,  # Target 2 (weed)
         }
 
-    def __call__(self, mask_img: Image) -> Tensor:
+    def __call__(self, mask_img: Image.Image) -> Tensor:
         mask = F.pil_to_tensor(mask_img)
         mask = (mask * 255).int()
 
