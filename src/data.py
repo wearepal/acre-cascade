@@ -1,8 +1,8 @@
 """Script containing data-loading functionality."""
 
-import os
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
+import os
 from pathlib import Path
 from typing import (
     Any,
@@ -19,18 +19,18 @@ from typing import (
 )
 from urllib.request import urlopen
 
+from PIL import Image
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
-import torchvision.transforms.functional as F
-from PIL import Image
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
+import torchvision.transforms.functional as TF
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
@@ -108,8 +108,8 @@ class _DataTransformer(_SizedDataset):
 def _patches_from_image_mask_pair(
     image: Image, mask: Image, kernel_size: int, stride: int
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
-    image_t = F.to_tensor(image)
-    mask_t = F.to_tensor(mask)
+    image_t = TF.to_tensor(image)
+    mask_t = TF.to_tensor(mask)
     combined = torch.cat([image_t, mask_t], dim=0)  # type: ignore[no-member]
 
     patches = (
@@ -119,7 +119,7 @@ def _patches_from_image_mask_pair(
     )
     image_patches, mask_patches = patches.chunk(2, dim=0)
     for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
-        yield (F.to_pil_image(image_patch), F.to_pil_image(mask_patch))
+        yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
 
 
 class IndexEncodeMask:
@@ -159,7 +159,7 @@ class AcreCascadeDataset(_SizedDataset):
         data_dir: Union[str, Path],
         download: bool = True,
         train: bool = True,
-        team: Optional[Team] = None,
+        teams: Optional[Union[Team, List[Team]]] = None,
         crop: Optional[Crop] = None,
         patch_size: int = 512,
         patch_stride: int = 256,
@@ -175,7 +175,7 @@ class AcreCascadeDataset(_SizedDataset):
         self.patch_stride = patch_stride
 
         if self.download:
-            self._download()
+            self._download_data()
         elif not self._check_downloaded():
             raise RuntimeError(
                 f"Images don't exist at location {self._base_folder}. Have you downloaded them?"
@@ -193,11 +193,13 @@ class AcreCascadeDataset(_SizedDataset):
             pd.read_csv(split_folder / "data.csv", dtype=dtypes, index_col=0),
         )
         # Filter the data by team, if a particular team is specified
-        if team is not None:
-            data = data[data["team"] == team]
+        if teams is not None:
+            if isinstance(teams, str):
+                teams = [teams]
+            data = data.query(expr=f"team == {teams}")
         # Filter the data by crop, if a particular crop is specified
         if crop is not None:
-            data = data.query(expr=f"crop == {crop}")
+            data = data.query(expr=f"crop == '{crop}'")
         # Process the categorical values
         cat_cols = ["team", "crop"]
         # Construct  dictionaries to map back from categorical values to index values
@@ -205,14 +207,14 @@ class AcreCascadeDataset(_SizedDataset):
         self.crop_decoder = dict(enumerate(data["crop"].cat.categories))  # type: ignore
         # Index-encode the categorical variables (team/crop)
         # dtype needs to be int64 for the labels to be compatible with CrossEntropyLoss
-        data[cat_cols] = data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))
+        data[cat_cols] = data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))  # type: ignore
 
         # Divide up the dataframe into it's constituent arrays because indexing with pandas is
         # many times slower than indexing with numpy/torch
         self.image_fps = data["image"].values
         self.mask_fps = data["mask"].values if self.train else None
-        self.teams = torch.as_tensor(data["team"].values)
-        self.crops = torch.as_tensor(data["crop"].values)
+        self.team_data = torch.as_tensor(data["team"].values)
+        self.crop_data = torch.as_tensor(data["crop"].values)
 
         # THe transformation applied to the mask
         self._target_transform = IndexEncodeMask()
@@ -252,7 +254,7 @@ class AcreCascadeDataset(_SizedDataset):
 
         return filepaths
 
-    def _download(self) -> None:
+    def _download_data(self) -> None:
         """Attempt to download data if files cannot be found in the base folder."""
         import zipfile
 
@@ -321,8 +323,8 @@ class AcreCascadeDataset(_SizedDataset):
     @implements(_SizedDataset)
     def __getitem__(self, index: int) -> Union[TrainBatch, TestBatch]:
         image = Image.open(self._dataset_folder / self.image_fps[index])
-        team = self.teams[index]
-        crop = self.crops[index]
+        team = self.team_data[index]
+        crop = self.crop_data[index]
         if self.mask_fps is not None:
             mask_t = Image.open(self._dataset_folder / self.mask_fps[index])
             mask = self._target_transform(mask_t)
@@ -393,7 +395,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def prepare_data(self) -> None:
         """Download the ACRE Cascade Dataset if not already present in the root directory."""
-        AcreCascadeDataset(data_dir=self.data_dir, download=self.download, team=self.team)
+        AcreCascadeDataset(data_dir=self.data_dir, download=self.download, teams=self.team)
 
     @implements(pl.LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:
