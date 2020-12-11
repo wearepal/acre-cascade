@@ -395,14 +395,16 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def prepare_data(self) -> None:
         """Download the ACRE Cascade Dataset if not already present in the root directory."""
-        AcreCascadeDataset(data_dir=self.data_dir, download=self.download, teams=self.team)
+        AcreCascadeDataset(data_dir=self.data_dir, download=self.download)
 
     @implements(pl.LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:
         """Set up the data-module by instantiating the splits relevant to the given stage."""
         # Assign Train/Val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
-            labeled_data = AcreCascadeDataset(self.data_dir, train=True, download=False)
+            labeled_data = AcreCascadeDataset(
+                self.data_dir, train=True, download=False, teams=self.team
+            )
             val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
             # Wrap the datasets in the DataTransformer class to allow for separate transformations
             # to be applied to the training and validation sets (this would not be possible if the
