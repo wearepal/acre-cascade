@@ -129,6 +129,7 @@ class IndexEncodeMask:
     # This is possible because the sums are unique.
     mapping: ClassVar[Dict[int, int]] = {
         358: 0,  # Target 0 (background)
+        396: 0,  # Other vegetation (which should be treated as Target 0)
         765: 1,  # Target 1 (crop)
         365: 2,  # Target 2 (weed)
     }
