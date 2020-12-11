@@ -330,7 +330,7 @@ class AcreCascadeDataset(_SizedDataset):
         crop = self.crops[index]
         if self.mask_fps is not None:
             mask_t = Image.open(self._dataset_folder / self.mask_fps[index])
-            mask = self._target_transform(mask_t).squeeze(0)
+            mask = self._target_transform(mask_t)
             return TrainBatch(image=image, mask=mask, team=team, crop=crop)
         return TestBatch(image=image, team=team, crop=crop)
 
