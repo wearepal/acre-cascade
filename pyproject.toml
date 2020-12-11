@@ -24,24 +24,19 @@ exclude = '''
 
 [tool.isort]
 known_third_party = [
-  "black",
-  "click",
-  "click_option_group",
-  "ethicml",
-  "hydra",
-  "matplotlib",
-  "mypy",
+  "PIL",
   "numpy",
-  "omegaconf",
   "pandas",
-  "pylint",
-  "pytest",
-  "scipy",
+  "pl_examples",
+  "pytorch_lightning",
+  "requests",
   "setuptools",
-  "sklearn",
   "torch",
+  "torchvision",
   "tqdm",
-  "wandb",
+  "typer",
+  "typing_extensions",
+  "typing_inspect",
 ]
 extra_standard_library = ["dataclasses"]
 line_length = 100
