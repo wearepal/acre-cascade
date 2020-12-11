@@ -28,6 +28,6 @@ def test_to_mask_tens():
     base_path = Path(__file__).parent / "data"
     test_img_path = base_path / "rgb_mask_example.png"
     mask_img = Image.open(test_img_path)
-    tensor_mask = IndexEncodeMask()(mask_img).int()
+    tensor_mask = IndexEncodeMask()(mask_img)
     np_tens_mask = torch.as_tensor(read_rgb_mask(test_img_path)).t()
     torch.testing.assert_allclose(tensor_mask, np_tens_mask)
