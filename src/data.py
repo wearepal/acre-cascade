@@ -224,15 +224,12 @@ class AcreCascadeDataset(_SizedDataset):
     def _check_downloaded(self) -> bool:
         return self._dataset_folder.is_dir()
 
-    def _generate_patches(
-        self,
-        image_fp: Path,
-    ) -> Dict[str, List[str]]:
+    def _generate_patches(self, image_fp: Path, team: str, crop: str) -> Dict[str, List[str]]:
         mask_fp = (image_fp.parent.parent / "Masks" / image_fp.stem).with_suffix(".png")
         patch_dir = image_fp.parents[3] / "Patches"
-        image_patch_dir = patch_dir / "Images"
+        image_patch_dir = patch_dir / "Images" / team / crop / image_fp.stem
         image_patch_dir.mkdir(parents=True, exist_ok=True)
-        mask_patch_dir = patch_dir / "Masks"
+        mask_patch_dir = patch_dir / "Masks" / team / crop / image_fp.stem
         mask_patch_dir.mkdir(parents=True, exist_ok=True)
 
         image = Image.open(image_fp)
@@ -300,7 +297,9 @@ class AcreCascadeDataset(_SizedDataset):
                             # 1) To enable batching of data from different teams, captured at
                             # different resolutions
                             # 2) To make training with batches more computationally tractable
-                            patch_fps = self._generate_patches(image_fp=image_fp)
+                            patch_fps = self._generate_patches(
+                                image_fp=image_fp, team=team, crop=crop
+                            )
                             data_dict["image"].extend(patch_fps["image"])
                             data_dict["mask"].extend(patch_fps["mask"])
                             # Repeat the team/crop labels for each patch
