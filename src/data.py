@@ -30,7 +30,7 @@ from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
-from torchvision.transforms import ToTensor, transforms
+from torchvision.transforms import ToTensor
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
@@ -122,7 +122,7 @@ def _patches_from_image_mask_pair(
         yield (F.to_pil_image(image_patch), F.to_pil_image(mask_patch))
 
 
-class ToMask:
+class IndexEncodeMask:
     def __init__(self):
         self.mapping = {
             (0, 0, 0): 0,  # Target 0 (background)
@@ -131,16 +131,19 @@ class ToMask:
             (216, 67, 81): 2,  # Target 2 (weed)
         }
 
-    def __call__(self, mask_img: Image) -> np.ndarray:
-        mask_img = mask_img.convert("RGB")
-        mask_arr = np.array(mask_img)
+    def __call__(self, mask_img: Image) -> Tensor:
+        mask = F.pil_to_tensor(mask_img)
+        mask = (mask * 255).int()
 
-        new_mask_arr = np.zeros(mask_arr.shape[:2], dtype=mask_arr.dtype)
+        _, h, w = mask.shape
+        mask_out = torch.zeros(h, w, dtype=torch.int)
 
-        for rgb, out in self.mapping.items():
-            new_mask_arr[np.where(np.all(mask_arr == list(rgb), axis=-1))] = out
+        for k in self.mapping:
+            idx = mask == torch.tensor(k, dtype=torch.uint8).unsqueeze(1).unsqueeze(2)
+            validx = idx.sum(0) == 3
+            mask_out[validx] = torch.tensor(self.mapping[k], dtype=torch.int)
 
-        return new_mask_arr
+        return mask_out
 
 
 class AcreCascadeDataset(_SizedDataset):
@@ -216,7 +219,7 @@ class AcreCascadeDataset(_SizedDataset):
         self.crops = torch.as_tensor(data["crop"])
 
         # THe transformation applied to the mask
-        self._target_transform = transforms.Compose([ToMask(), ToTensor()])
+        self._target_transform = IndexEncodeMask()
 
     def _check_downloaded(self) -> bool:
         return self._dataset_folder.is_dir()
