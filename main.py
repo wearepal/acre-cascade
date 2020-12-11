@@ -28,7 +28,7 @@ def experiment(
     epochs: int = typer.Option(100, "--epochs"),
     use_amp: bool = typer.Option(False, "--use-amp"),
     seed: Optional[int] = typer.Option(47, "--seed"),
-    download: bool = typer.Option(False, "--dl"),
+    download: bool = typer.Option(False, "--download", "-dl"),
 ) -> None:
     """Main script."""
     # Set all seeds for reproducibility
