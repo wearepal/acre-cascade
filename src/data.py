@@ -123,6 +123,10 @@ def _patches_from_image_mask_pair(
 
 
 class IndexEncodeMask:
+    """Encode an RGB mask into its corresponding segmentation classes"""
+
+    # We define the keys as the sum odf the RGB channels for computational efficiency.
+    # This is possible because the sums are unique.
     mapping: ClassVar[Dict[int, int]] = {
         358: 0,  # Target 0 (background)
         765: 1,  # Target 1 (crop)
@@ -131,7 +135,7 @@ class IndexEncodeMask:
 
     def __call__(self, mask_img: Image.Image) -> Tensor:
         # sum over the RGB channels and convert from WH to HW format
-        mask = torch.as_tensor(np.array(mask_img), dtype=torch.long).sum(-1).t()  # type: ignore
+        mask = torch.as_tensor(np.array(mask_img), dtype=torch.int64).sum(-1).t()  # type: ignore
         for sum_rgb, class_ in self.mapping.items():
             mask[mask == sum_rgb] = class_
         return mask
