@@ -16,7 +16,7 @@ def read_rgb_mask(img_path: Union[str, Path]) -> np.ndarray:
         np.ndarray: the numpy array containing target values
     """
     mask_img = Image.open(img_path)
-    mask_arr = np.array(mask_img)
+    mask_arr = np.array(mask_img.copy())
 
     new_mask_arr = np.zeros(mask_arr.shape[:2], dtype=mask_arr.dtype)
 

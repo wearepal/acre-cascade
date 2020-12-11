@@ -123,27 +123,17 @@ def _patches_from_image_mask_pair(
 
 
 class IndexEncodeMask:
-    def __init__(self):
-        self.mapping = {
-            (0, 0, 0): 0,  # Target 0 (background)
-            (216, 124, 18): 0,  # Target 0 (background)
-            (255, 255, 255): 1,  # Target 1 (crop)
-            (216, 67, 81): 2,  # Target 2 (weed)
-        }
+    mapping: ClassVar[Dict[int, int]] = {
+        396: 0,  # Target 0 (background)
+        765: 1,  # Target 1 (crop)
+        365: 2,  # Target 2 (weed)
+    }
 
     def __call__(self, mask_img: Image.Image) -> Tensor:
-        mask = F.pil_to_tensor(mask_img)
-        mask = (mask * 255).int()
-
-        _, h, w = mask.shape
-        mask_out = torch.zeros(h, w, dtype=torch.int)
-
-        for k in self.mapping:
-            idx = mask == torch.tensor(k, dtype=torch.uint8).unsqueeze(1).unsqueeze(2)
-            validx = idx.sum(0) == 3
-            mask_out[validx] = torch.tensor(self.mapping[k], dtype=torch.int)
-
-        return mask_out
+        mask = torch.as_tensor(np.array(mask_img)).long().sum(-1).t()
+        for sum_rgb, class_ in self.mapping.items():
+            mask[mask == sum_rgb] = class_
+        return mask
 
 
 class AcreCascadeDataset(_SizedDataset):
@@ -161,8 +151,8 @@ class AcreCascadeDataset(_SizedDataset):
     def __init__(
         self,
         data_dir: Union[str, Path],
-        download=True,
-        train=True,
+        download: bool = True,
+        train: bool = True,
         team: Optional[Team] = None,
         crop: Optional[Crop] = None,
         patch_size: int = 512,
@@ -198,7 +188,7 @@ class AcreCascadeDataset(_SizedDataset):
         )
         # Filter the data by team, if a particular team is specified
         if team is not None:
-            data = data.query(expr=f"team == {team}")
+            data = data[data["team"] == team]
         # Filter the data by crop, if a particular crop is specified
         if crop is not None:
             data = data.query(expr=f"crop == {crop}")
@@ -216,7 +206,7 @@ class AcreCascadeDataset(_SizedDataset):
         self.image_fps = data["image"].values
         self.mask_fps = data["mask"].values if self.train else None
         self.teams = torch.as_tensor(data["team"].values)
-        self.crops = torch.as_tensor(data["crop"])
+        self.crops = torch.as_tensor(data["crop"].values)
 
         # THe transformation applied to the mask
         self._target_transform = IndexEncodeMask()
@@ -319,7 +309,7 @@ class AcreCascadeDataset(_SizedDataset):
             data_df.to_csv(split_folder / "data.csv")
 
     @implements(_SizedDataset)
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.image_fps)
 
     @implements(_SizedDataset)
@@ -358,6 +348,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self,
         data_dir: Union[str, Path],
         train_batch_size: int,
+        team: Optional[Team],
         val_batch_size: Optional[int] = None,
         num_workers: int = 0,
         train_transforms: Transform = ToTensor(),
@@ -371,6 +362,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         )
         self.data_dir = data_dir
         self.download = download
+        self.team = team
 
         if train_batch_size < 1:
             raise ValueError("train_batch_size must be a postivie integer.")
@@ -395,7 +387,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def prepare_data(self) -> None:
         """Download the ACRE Cascade Dataset if not already present in the root directory."""
-        AcreCascadeDataset(data_dir=self.data_dir, download=self.download)
+        AcreCascadeDataset(data_dir=self.data_dir, download=self.download, team=self.team)
 
     @implements(pl.LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:

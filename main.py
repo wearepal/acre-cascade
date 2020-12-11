@@ -1,6 +1,6 @@
 """Main script to run."""
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pytorch_lightning as pl
 import typer
@@ -44,6 +44,7 @@ def experiment(
         val_pcnt=val_pcnt,
         num_workers=num_workers,
         download=download,
+        team="Roseau",
     )
 
     # ------------------------
@@ -60,7 +61,7 @@ def experiment(
     # ------------------------
     # 3 SET LOGGER
     # ------------------------
-    logger = False
+    logger: Union[bool, WandbLogger] = False
     if log_to_wandb:
         logger = WandbLogger()
         # optional: log model topology
