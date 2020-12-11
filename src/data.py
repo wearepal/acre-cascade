@@ -1,8 +1,8 @@
 """Script containing data-loading functionality."""
 
-import os
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
+import os
 from pathlib import Path
 from typing import (
     Any,
@@ -19,18 +19,18 @@ from typing import (
 )
 from urllib.request import urlopen
 
+from PIL import Image
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import requests
 import torch
-import torchvision.transforms.functional as F
-from PIL import Image
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
+import torchvision.transforms.functional as F
 from tqdm import tqdm
 from typing_extensions import Literal, Protocol
 from typing_inspect import get_args
@@ -123,27 +123,18 @@ def _patches_from_image_mask_pair(
 
 
 class IndexEncodeMask:
-    def __init__(self):
-        self.mapping = {
-            (0, 0, 0): 0,  # Target 0 (background)
-            (216, 124, 18): 0,  # Target 0 (background)
-            (255, 255, 255): 1,  # Target 1 (crop)
-            (216, 67, 81): 2,  # Target 2 (weed)
-        }
+    mapping: ClassVar[Dict[int, int]] = {
+        358: 0,  # Target 0 (background)
+        765: 1,  # Target 1 (crop)
+        365: 2,  # Target 2 (weed)
+    }
 
     def __call__(self, mask_img: Image.Image) -> Tensor:
-        mask = F.pil_to_tensor(mask_img)
-        mask = (mask * 255).int()
-
-        _, h, w = mask.shape
-        mask_out = torch.zeros(h, w, dtype=torch.int)
-
-        for k in self.mapping:
-            idx = mask == torch.tensor(k, dtype=torch.uint8).unsqueeze(1).unsqueeze(2)
-            validx = idx.sum(0) == 3
-            mask_out[validx] = torch.tensor(self.mapping[k], dtype=torch.int)
-
-        return mask_out
+        # sum over the RGB channels and convert from WH to HW format
+        mask = torch.as_tensor(np.array(mask_img)).long().sum(-1).t()  # type: ignore
+        for sum_rgb, class_ in self.mapping.items():
+            mask[mask == sum_rgb] = class_
+        return mask
 
 
 class AcreCascadeDataset(_SizedDataset):
