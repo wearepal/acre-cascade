@@ -122,6 +122,30 @@ def _patches_from_image_mask_pair(
         yield (F.to_pil_image(image_patch), F.to_pil_image(mask_patch))
 
 
+class IndexEncodeMask:
+    def __init__(self):
+        self.mapping = {
+            (0, 0, 0): 0,  # Target 0 (background)
+            (216, 124, 18): 0,  # Target 0 (background)
+            (255, 255, 255): 1,  # Target 1 (crop)
+            (216, 67, 81): 2,  # Target 2 (weed)
+        }
+
+    def __call__(self, mask_img: Image.Image) -> Tensor:
+        mask = F.pil_to_tensor(mask_img)
+        mask = (mask * 255).int()
+
+        _, h, w = mask.shape
+        mask_out = torch.zeros(h, w, dtype=torch.int)
+
+        for k in self.mapping:
+            idx = mask == torch.tensor(k, dtype=torch.uint8).unsqueeze(1).unsqueeze(2)
+            validx = idx.sum(0) == 3
+            mask_out[validx] = torch.tensor(self.mapping[k], dtype=torch.int)
+
+        return mask_out
+
+
 class AcreCascadeDataset(_SizedDataset):
     """Acre Cascade dataset."""
 
@@ -154,7 +178,7 @@ class AcreCascadeDataset(_SizedDataset):
         self.patch_size = patch_size
         self.patch_stride = patch_stride
 
-        if download:
+        if self.download:
             self._download()
         elif not self._check_downloaded():
             raise RuntimeError(
@@ -195,7 +219,7 @@ class AcreCascadeDataset(_SizedDataset):
         self.crops = torch.as_tensor(data["crop"])
 
         # THe transformation applied to the mask
-        self._target_transform = ToTensor()
+        self._target_transform = IndexEncodeMask()
 
     def _check_downloaded(self) -> bool:
         return self._dataset_folder.is_dir()
