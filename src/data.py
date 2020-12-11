@@ -131,7 +131,7 @@ class IndexEncodeMask:
 
     def __call__(self, mask_img: Image.Image) -> Tensor:
         # sum over the RGB channels and convert from WH to HW format
-        mask = torch.as_tensor(np.array(mask_img)).long().sum(-1).t()  # type: ignore
+        mask = torch.as_tensor(np.array(mask_img), dtype=torch.long).sum(-1).t()  # type: ignore
         for sum_rgb, class_ in self.mapping.items():
             mask[mask == sum_rgb] = class_
         return mask
