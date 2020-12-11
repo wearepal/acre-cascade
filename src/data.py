@@ -207,7 +207,9 @@ class AcreCascadeDataset(_SizedDataset):
         self.crop_decoder = dict(enumerate(data["crop"].cat.categories))  # type: ignore
         # Index-encode the categorical variables (team/crop)
         # dtype needs to be int64 for the labels to be compatible with CrossEntropyLoss
-        data[cat_cols] = data[cat_cols].apply(lambda x: x.cat.codes.astype("int64"))  # type: ignore
+        data.loc[cat_cols] = data[cat_cols].apply(  # type: ignore
+            lambda x: x.cat.codes.astype("int64")  # type: ignore
+        )
 
         # Divide up the dataframe into it's constituent arrays because indexing with pandas is
         # many times slower than indexing with numpy/torch
