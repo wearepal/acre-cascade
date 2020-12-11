@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from PIL import Image
 import numpy as np
 import torch
+from PIL import Image
 
 from src.data import IndexEncodeMask
 from src.read_files import read_rgb_mask

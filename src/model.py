@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
 import pytorch_lightning as pl
-import torch
 from pl_examples.domain_templates.unet import UNet
 from torch import nn
 from torch.optim import Adam
@@ -60,8 +59,8 @@ class SegModel(pl.LightningModule, ABC):
         mask = batch.mask.long()
         out = self(img)
         loss_val = self.loss_fn(out, mask)
-        log_dict = {"train_loss": loss_val}
-        return {"loss": loss_val, "log": log_dict, "progress_bar": log_dict}
+        self.log("train_loss", loss_val, on_step=True, on_epoch=True, prog_bar=True)
+        return {"loss": loss_val}
 
     @implements(pl.LightningModule)
     def validation_step(self, batch: TrainBatch, batch_idx: int) -> Dict[str, Any]:
@@ -69,21 +68,12 @@ class SegModel(pl.LightningModule, ABC):
         mask = batch.mask.long()
         out = self(img)
         loss_val = self.loss_fn(out, mask)
+        self.log("val_loss", loss_val, on_step=True, on_epoch=True, prog_bar=True)
         return {"val_loss": loss_val}
 
     @implements(pl.LightningModule)
     def test_step(self, batch: TestBatch, batch_idx: int) -> Tensor:
         return self(batch.image)
-
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, outputs: List[Dict[str, Any]]) -> Dict[str, Any]:
-        loss_val = torch.stack([x["val_loss"] for x in outputs]).mean()
-        log_dict = {"val_loss": loss_val}
-        return {
-            "log": log_dict,
-            "val_loss": log_dict["val_loss"],
-            "progress_bar": log_dict,
-        }
 
 
 class UNetSegModel(SegModel):
