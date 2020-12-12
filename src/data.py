@@ -144,7 +144,7 @@ class IndexEncodeMask:
 
 
 class AcreCascadeDataset(_SizedDataset):
-    """Acre Cascade dataset."""
+    """ACRE Cascade dataset."""
 
     url: ClassVar[
         str
