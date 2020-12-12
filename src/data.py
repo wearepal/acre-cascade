@@ -331,7 +331,7 @@ class AcreCascadeDataset(_SizedDataset):
             mask_t = Image.open(self._dataset_folder / self.mask_fps[index])
             mask = self._target_transform(mask_t)
             return TrainBatch(image=image, mask=mask, team=team, crop=crop)
-        filename = Path(image_fp).name
+        filename = Path(image_fp).stem
         return TestBatch(
             image=image,
             team=self.team_decoder[int(team)],
