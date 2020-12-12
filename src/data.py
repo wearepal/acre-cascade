@@ -341,7 +341,7 @@ class AcreCascadeDataset(_SizedDataset):
 
 
 def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
-    """Splits a dataset based on a proportions rather than on absolute sizes."""
+    """Splits a dataset based on proportions rather than on absolute sizes."""
     len_ = len(dataset)
     sum_ = np.sum(props)  # type: ignore
     if (sum_ > 1.0) or any(prop < 0 for prop in props):
