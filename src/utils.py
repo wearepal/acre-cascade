@@ -40,7 +40,7 @@ class MultiLoss:
     """Combines multiple losses with weighting."""
 
     def __init__(self, loss_fns: Dict[Loss, float]):
-        """loss_fns should be a dictionary of loss functions (key) and their prefactors (value)."""
+        """loss_fns should be a dictionary of loss functions and their prefactors."""
 
         self.loss_fns = loss_fns
 
