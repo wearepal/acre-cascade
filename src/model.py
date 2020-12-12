@@ -81,7 +81,10 @@ class SegModel(pl.LightningModule, ABC):
     def test_step(self, batch: TestBatch, batch_idx: int) -> Dict[str, Dict[str, Any]]:
         predicted_mask = self(batch.image).argmax(dim=1)
         submission_i = sample_to_submission(
-            filename=batch.filename, team_name=batch.team, crop_name=batch.crop, mask=predicted_mask
+            filename=batch.filename,
+            team_name=batch.team,
+            crop_name=batch.crop,
+            mask=predicted_mask.cpu().detach().numpy(),
         )
         submission_dict_i = asdict(submission_i)
         return {submission_dict_i.pop("filename"): submission_dict_i}
