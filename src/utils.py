@@ -24,8 +24,6 @@ class implements:  # pylint: disable=invalid-name
         """Take a function and return it unchanged."""
         super_method = getattr(self.interface, func.__name__, None)
         assert super_method is not None, f"'{func.__name__}' does not exist in {self.interface}"
-        # Remove until pytorch update their docstrings
-        # assert super_method.__doc__, f"'{super_method}' has no docstring"
         return func
 
 
