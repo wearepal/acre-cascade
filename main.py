@@ -1,13 +1,15 @@
 """Main script to run."""
+import json
 from pathlib import Path
 from typing import Optional, Union
 
 import pytorch_lightning as pl
-import typer
 from pytorch_lightning.loggers import WandbLogger
+import typer
 
 from src.data import AcreCascadeDataModule
 from src.model import UNetSegModel
+from src.utils import generate_timestamp
 
 app = typer.Typer()
 
@@ -15,6 +17,7 @@ app = typer.Typer()
 @app.command(context_settings={"ignore_unknown_options": True})
 def experiment(
     data_dir: Path = typer.Option("data", "--data-dir", "-d"),
+    output_dir: Path = typer.Option("output", "--output", "-o"),
     train_batch_size: int = typer.Option(16, "--train-batch-size"),
     val_batch_size: int = typer.Option(32, "--val-batch-size"),
     val_pcnt: float = typer.Option(0.2, "--val-pcnt"),
@@ -31,9 +34,14 @@ def experiment(
     download: bool = typer.Option(False, "--download", "-dl"),
 ) -> None:
     """Main script."""
+    # Create a submdir within the output dir named with a timestamp
+    run_dir = output_dir / generate_timestamp()
+    run_dir.mkdir(parents=True)
+
     # Set all seeds for reproducibility
     if seed is not None:
         pl.seed_everything(seed=seed)
+
     # ------------------------
     # 1 INIT DATAMODULE
     # ------------------------
@@ -86,6 +94,14 @@ def experiment(
     # 7 START TESTING
     # ------------------------
     trainer.test(model=model, datamodule=dm)
+
+    # ------------------------
+    # 8 SAVE THE SUBMISSION
+    # ------------------------
+    submission_fp = run_dir / "submission.json"
+    with open(run_dir / submission_fp, "w") as f:
+        json.dump(model.submission, f)
+    print(f"Submission saved to {submission_fp.resolve()}")
 
 
 if __name__ == "__main__":

@@ -20,7 +20,8 @@ class Segmentation:
 class Submission:
     """Submission definition."""
 
-    shape: List[int]
+    filename: str
+    shape: Tuple[int, ...]
     team: Team
     crop: Crop
     segmentation: Segmentation
@@ -43,7 +44,7 @@ def rle_encode(img: np.ndarray) -> str:
 
 def sample_to_submission(
     filename: str, team_name: Team, crop_name: Crop, mask: np.ndarray
-) -> Tuple[str, Submission]:
+) -> Submission:
     """For a sample, convert to json ready to be zipped and uploaded.
 
     Args:
@@ -59,11 +60,10 @@ def sample_to_submission(
     segmentation_obj = Segmentation(
         crop=rle_encode(mask.numpy() == 1), weed=rle_encode(mask.numpy() == 2)
     )
-    submission_obj = Submission(
-        shape=list(mask.size()),
+    return Submission(
+        filename=filename,
+        shape=mask.shape,
         team=team_name,
         crop=crop_name,
         segmentation=segmentation_obj,
     )
-
-    return filename, submission_obj
