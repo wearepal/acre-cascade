@@ -101,7 +101,7 @@ def experiment(
     submission_fp = run_dir / "submission.json"
     with open(submission_fp, "w") as f:
         json.dump(model.submission, f)
-    print(f"Submission saved to {submission_fp.resolve()}")
+    typer.echo(f"Submission saved to {submission_fp.resolve()}")
 
 
 if __name__ == "__main__":
