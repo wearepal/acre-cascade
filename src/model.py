@@ -1,10 +1,13 @@
 """Model to train."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from collections import ChainMap
+from dataclasses import asdict
+from typing import Any, Dict, List, Optional, Tuple
 
-import pytorch_lightning as pl
 from pl_examples.domain_templates.unet import UNet
+import pytorch_lightning as pl
+from pytorch_lightning.metrics.functional.classification import dice_score
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
@@ -12,7 +15,8 @@ from torch.optim.optimizer import Optimizer
 from torch.tensor import Tensor
 
 from src.data import TestBatch, TrainBatch
-from src.utils import implements
+from src.submission_generation import Submission, sample_to_submission
+from src.utils import Loss, MultiLoss, implements
 
 __all__ = ["SegModel", "UNetSegModel"]
 
@@ -30,13 +34,15 @@ class SegModel(pl.LightningModule, ABC):
         self,
         num_classes: int,
         lr: float = 1.0e-3,
+        loss_fn: Loss = MultiLoss({nn.CrossEntropyLoss(): 1, dice_score: 0.1}),
     ):
         super().__init__()
         self.learning_rate = lr
         self.num_classes = num_classes
 
-        self.loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn = loss_fn
         self.net = self.build()
+        self.submission: Optional[Dict[str, Any]] = None
 
     @abstractmethod
     def build(self) -> nn.Module:
@@ -72,8 +78,17 @@ class SegModel(pl.LightningModule, ABC):
         return {"val_loss": loss_val}
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: TestBatch, batch_idx: int) -> Tensor:
-        return self(batch.image)
+    def test_step(self, batch: TestBatch, batch_idx: int) -> Dict[str, Dict[str, Any]]:
+        predicted_mask = self(batch.image).argmax(dim=1)
+        submission_i = sample_to_submission(
+            filename=batch.filename, team_name=batch.team, crop_name=batch.crop, mask=predicted_mask
+        )
+        submission_dict_i = asdict(submission_i)
+        return {submission_dict_i.pop("filename"): submission_dict_i}
+
+    @implements(pl.LightningModule)
+    def test_epoch_end(self, outputs: List[Dict[str, Submission]]) -> None:
+        self.submission = dict(ChainMap(*outputs))
 
 
 class UNetSegModel(SegModel):

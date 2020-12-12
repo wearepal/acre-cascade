@@ -43,7 +43,7 @@ __all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBat
 Team = Literal["Bipbip", "Pead", "Roseau", "Weedelec"]
 Crop = Literal["Haricot", "Mais"]
 TrainBatch = namedtuple("TrainBatch", ["image", "mask", "team", "crop"])
-TestBatch = namedtuple("TestBatch", ["image", "team", "crop"])
+TestBatch = namedtuple("TestBatch", ["image", "team", "crop", "filename"])
 InputShape = namedtuple("InputShape", ["c", "h", "w"])
 ImageSize = namedtuple("ImageSize", ["width", "height"])
 Transform = Callable[[Union[Image.Image, Tensor]], Tensor]
@@ -322,14 +322,21 @@ class AcreCascadeDataset(_SizedDataset):
 
     @implements(_SizedDataset)
     def __getitem__(self, index: int) -> Union[TrainBatch, TestBatch]:
-        image = Image.open(self._dataset_folder / self.image_fps[index])
+        image_fp = self.image_fps[index]
+        image = Image.open(self._dataset_folder / image_fp)
         team = self.team_data[index]
         crop = self.crop_data[index]
         if self.mask_fps is not None:
             mask_t = Image.open(self._dataset_folder / self.mask_fps[index])
             mask = self._target_transform(mask_t)
             return TrainBatch(image=image, mask=mask, team=team, crop=crop)
-        return TestBatch(image=image, team=team, crop=crop)
+        filename = Path(image_fp).name
+        return TestBatch(
+            image=image,
+            team=self.team_decoder[int(team)],
+            crop=self.crop_decoder[int(crop)],
+            filename=filename,
+        )
 
 
 def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
