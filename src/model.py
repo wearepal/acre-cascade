@@ -84,7 +84,7 @@ class SegModel(pl.LightningModule, ABC):
             filename=batch.filename[0],
             team_name=batch.team[0],
             crop_name=batch.crop[0],
-            mask=predicted_mask.squeeze().t().cpu().detach().numpy(),
+            mask=predicted_mask.squeeze().cpu().detach().numpy(),
         )
         submission_dict_i = asdict(submission_i)
         return {submission_dict_i.pop("filename"): submission_dict_i}
