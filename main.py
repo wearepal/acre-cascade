@@ -52,7 +52,8 @@ def experiment(
         val_pcnt=val_pcnt,
         num_workers=num_workers,
         download=download,
-        team="Roseau",
+        teams=["Roseau"],
+        crop="Haricot",
     )
 
     # ------------------------

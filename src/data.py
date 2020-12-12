@@ -111,7 +111,7 @@ def _patches_from_image_mask_pair(
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
     image_t = TF.to_tensor(image)
     mask_t = TF.to_tensor(mask)
-    combined = torch.cat([image_t, mask_t], dim=0)  # type: ignore[no-member]
+    combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
 
     patches = (
         combined.unfold(dimension=1, size=kernel_size, step=stride)
@@ -214,8 +214,8 @@ class AcreCascadeDataset(_SizedDataset):
         # many times slower than indexing with numpy/torch
         self.image_fps = data["image"].values
         self.mask_fps = data["mask"].values if self.train else None
-        self.team_data = torch.as_tensor(data["team"].values)
-        self.crop_data = torch.as_tensor(data["crop"].values)
+        self.team_data = torch.as_tensor(data["team"].values)  # pylint: disable=no-member
+        self.crop_data = torch.as_tensor(data["crop"].values)  # pylint: disable=no-member
 
         # THe transformation applied to the mask
         self._target_transform = IndexEncodeMask()
@@ -364,7 +364,8 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self,
         data_dir: Union[str, Path],
         train_batch_size: int,
-        team: Optional[Team],
+        teams: Optional[Union[[Team, List[Team]]]] = None,
+        crop: Optional[Crop] = None,
         val_batch_size: Optional[int] = None,
         num_workers: int = 0,
         train_transforms: Transform = ToTensor(),
@@ -378,7 +379,8 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         )
         self.data_dir = data_dir
         self.download = download
-        self.team = team
+        self.teams = teams
+        self.crop: Optional[Crop] = crop  # For some reason the type needs to be restated here
 
         if train_batch_size < 1:
             raise ValueError("train_batch_size must be a postivie integer.")
@@ -411,7 +413,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         # Assign Train/Val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
             labeled_data = AcreCascadeDataset(
-                self.data_dir, train=True, download=False, teams=self.team
+                self.data_dir, train=True, download=False, teams=self.teams, crop=self.crop
             )
             val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
             # Wrap the datasets in the DataTransformer class to allow for separate transformations
@@ -426,7 +428,9 @@ class AcreCascadeDataModule(pl.LightningDataModule):
 
         # # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
-            test_data = AcreCascadeDataset(self.data_dir, train=False, download=False)
+            test_data = AcreCascadeDataset(
+                self.data_dir, train=False, download=False, teams=self.teams, crop=self.crop
+            )
             self.test_data = _DataTransformer(
                 test_data, train=False, transforms=self.test_transforms
             )
