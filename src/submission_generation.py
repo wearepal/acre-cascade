@@ -57,9 +57,7 @@ def sample_to_submission(
         (str, Submission): Tuple containing filename used to index and the submission object.
         May have to call dataclasses.asdict() on Submission.
     """
-    segmentation_obj = Segmentation(
-        crop=rle_encode(mask.numpy() == 1), weed=rle_encode(mask.numpy() == 2)
-    )
+    segmentation_obj = Segmentation(crop=rle_encode(mask == 1), weed=rle_encode(mask == 2))
     return Submission(
         filename=filename,
         shape=mask.shape,
