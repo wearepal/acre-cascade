@@ -89,8 +89,9 @@ class _SizedDataset(Dataset):
 
 
 class _DataTransformer(_SizedDataset):
-    def __init__(self, base_dataset: _SizedDatasetProt, transforms: Transform):
+    def __init__(self, base_dataset: _SizedDatasetProt, train: bool, transforms: Transform):
         self.base_dataset = base_dataset
+        self.train = train
         self.transforms = transforms
 
     def __len__(self) -> int:
@@ -100,7 +101,7 @@ class _DataTransformer(_SizedDataset):
         data = self.base_dataset[index]
         if self.transforms is not None:
             data = (self.transforms(data[0]),) + data[1:]
-        if len(data) == 4:
+        if self.train:
             return TrainBatch(*data)
         return TestBatch(*data)
 
@@ -417,14 +418,18 @@ class AcreCascadeDataModule(pl.LightningDataModule):
             # to be applied to the training and validation sets (this would not be possible if the
             # the transformations were a property of the dataset itself as random_split just creates
             # an index mask).
-            self.train_data = _DataTransformer(train_data, transforms=self.train_transforms)
-            self.val_data = _DataTransformer(val_data, transforms=self.test_transforms)
+            self.train_data = _DataTransformer(
+                train_data, train=True, transforms=self.train_transforms
+            )
+            self.val_data = _DataTransformer(val_data, train=True, transforms=self.test_transforms)
             self.dims = InputShape(*self.train_data[0].image.shape)
 
         # # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
             test_data = AcreCascadeDataset(self.data_dir, train=False, download=False)
-            self.test_data = _DataTransformer(test_data, transforms=self.test_transforms)
+            self.test_data = _DataTransformer(
+                test_data, train=False, transforms=self.test_transforms
+            )
             self.dims = getattr(self, "dims", self.test_data[0].image.shape)
 
     @implements(pl.LightningDataModule)
