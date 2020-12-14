@@ -406,7 +406,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.download = download
         self.teams = teams
-        self.test_teams = teams
+        self.test_teams = test_teams
         self.crop = crop
 
         if train_batch_size < 1:
