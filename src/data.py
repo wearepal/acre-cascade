@@ -76,7 +76,7 @@ def _download_from_url(url: str, dst: str) -> int:
 
 
 class _SizedDatasetProt(Protocol):
-    """Typing Protocol for a SizedDataset (a Dataset defining a __len__ method)"""
+    """Typing Protocol for a SizedDataset (a Dataset defining a __len__ method)."""
 
     def __len__(self) -> int:
         ...
@@ -112,7 +112,7 @@ class _DataTransformer(_SizedDataset):
 def _patches_from_image_mask_pair(
     image: Image, mask: Image, kernel_size: int, stride: int
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
-    """ Generates corresponding patches from an image-mask pair."""
+    """Generates corresponding patches from an image-mask pair."""
     image_t = TF.to_tensor(image)
     mask_t = TF.to_tensor(mask)
     combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
@@ -281,7 +281,7 @@ class AcreCascadeDataset(_SizedDataset):
             fhandle.extractall(str(self._base_folder))
 
     def process_files(self) -> None:
-        """Store the filepaths of the images in a csv file, along with their mask, and labels"""
+        """Store the filepaths of the images in a csv file, along with their mask, and labels."""
         # Compile the filepaths of the images, their associated massk and team/crop-type into a
         # .csv file which can be accessed by the dataset.
         extensions = ("*.png", "*.jpg", "*.jpeg")
@@ -390,6 +390,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         data_dir: Union[str, Path],
         train_batch_size: int,
         teams: Optional[Union[Team, List[Team]]] = None,
+        test_teams: Optional[Union[Team, List[Team]]] = None,
         crop: Optional[Crop] = None,
         val_batch_size: Optional[int] = None,
         num_workers: int = 0,
@@ -405,6 +406,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.download = download
         self.teams = teams
+        self.test_teams = teams
         self.crop = crop
 
         if train_batch_size < 1:
@@ -454,7 +456,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         # # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
             test_data = AcreCascadeDataset(
-                self.data_dir, train=False, download=False, teams=self.teams, crop=self.crop
+                self.data_dir, train=False, download=False, teams=self.test_teams, crop=self.crop
             )
             self.test_data = _DataTransformer(
                 test_data, train=False, transforms=self.test_transforms
