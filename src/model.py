@@ -22,19 +22,13 @@ __all__ = ["SegModel", "UNetSegModel"]
 
 
 class SegModel(pl.LightningModule, ABC):
-    """Semantic Segmentation Module.
-
-    This is a basic semantic segmentation module implemented with Lightning.
-    It uses CrossEntropyLoss as the default loss function. May be replaced with
-    other loss functions as required.
-    Adam optimizer is used along with Cosine Annealing learning rate scheduler.
-    """
+    """The base class for Lightning-based Semantic Segmentation Modules."""
 
     def __init__(
         self,
         num_classes: int,
         lr: float = 1.0e-3,
-        loss_fn: Loss = MultiLoss({nn.CrossEntropyLoss(): 1, dice_score: 0.1}),
+        loss_fn: Loss = MultiLoss({nn.CrossEntropyLoss(): 1.0, dice_score: 0.1}),
     ):
         super().__init__()
         self.learning_rate = lr
@@ -79,6 +73,7 @@ class SegModel(pl.LightningModule, ABC):
 
     @implements(pl.LightningModule)
     def test_step(self, batch: TestBatch, batch_idx: int) -> Dict[str, Dict[str, Any]]:
+        """"Predict the mask of a single test image and prepare it for submission."""
         predicted_mask = self(batch.image).argmax(dim=1)
         submission_i = sample_to_submission(
             filename=batch.filename[0],
@@ -91,11 +86,12 @@ class SegModel(pl.LightningModule, ABC):
 
     @implements(pl.LightningModule)
     def test_epoch_end(self, outputs: List[Dict[str, Submission]]) -> None:
+        """Collate the list of dictionaries produced by test_step into a single dictionary."""
         self.submission = dict(ChainMap(*outputs))
 
 
 class UNetSegModel(SegModel):
-    """UNet based Segmentation model."""
+    """Segmentation Module using U-Net as the underlying model."""
 
     def __init__(
         self,

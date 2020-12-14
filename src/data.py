@@ -4,6 +4,7 @@ from abc import abstractmethod
 from collections import defaultdict, namedtuple
 import os
 from pathlib import Path
+import shutil
 from typing import (
     Any,
     Callable,
@@ -75,6 +76,8 @@ def _download_from_url(url: str, dst: str) -> int:
 
 
 class _SizedDatasetProt(Protocol):
+    """Typing Protocol for a SizedDataset (a Dataset defining a __len__ method)"""
+
     def __len__(self) -> int:
         ...
 
@@ -109,6 +112,7 @@ class _DataTransformer(_SizedDataset):
 def _patches_from_image_mask_pair(
     image: Image, mask: Image, kernel_size: int, stride: int
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
+    """ Generates corresponding patches from an image-mask pair."""
     image_t = TF.to_tensor(image)
     mask_t = TF.to_tensor(mask)
     combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
@@ -120,7 +124,9 @@ def _patches_from_image_mask_pair(
     )
     image_patches, mask_patches = patches.chunk(2, dim=0)
     for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
-        yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
+        # Check that that the mask contains more than one class
+        if torch.var(mask_patch) > 0:  # pylint: disable=no-member
+            yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
 
 
 class IndexEncodeMask:
@@ -144,7 +150,7 @@ class IndexEncodeMask:
 
 
 class AcreCascadeDataset(_SizedDataset):
-    """ACRE Cascade dataset."""
+    """PyTorch Dataset for the ACRE Cascade dataset."""
 
     url: ClassVar[
         str
@@ -170,6 +176,7 @@ class AcreCascadeDataset(_SizedDataset):
         self.root = Path(data_dir)
         self._base_folder = self.root / self.base_folder_name
         self._dataset_folder = self._base_folder / self.dataset_folder_name
+        self._patch_dir = self._dataset_folder / self.train_folder_name / "Patches"
         self.download = download
 
         self.patch_size = patch_size
@@ -224,11 +231,11 @@ class AcreCascadeDataset(_SizedDataset):
         return self._dataset_folder.is_dir()
 
     def _generate_patches(self, image_fp: Path, team: str, crop: str) -> Dict[str, List[str]]:
+        """Generate image patches for a single training image and it's associated mask."""
         mask_fp = (image_fp.parent.parent / "Masks" / image_fp.stem).with_suffix(".png")
-        patch_dir = image_fp.parents[3] / "Patches"
-        image_patch_dir = patch_dir / "Images" / team / crop / image_fp.stem
+        image_patch_dir = self._patch_dir / "Images" / team / crop / image_fp.stem
         image_patch_dir.mkdir(parents=True, exist_ok=True)
-        mask_patch_dir = patch_dir / "Masks" / team / crop / image_fp.stem
+        mask_patch_dir = self._patch_dir / "Masks" / team / crop / image_fp.stem
         mask_patch_dir.mkdir(parents=True, exist_ok=True)
 
         image = Image.open(image_fp)
@@ -273,10 +280,28 @@ class AcreCascadeDataset(_SizedDataset):
         with zipfile.ZipFile(self._base_folder / self.zipfile_name, "r") as fhandle:
             fhandle.extractall(str(self._base_folder))
 
+    def process_files(self) -> None:
+        """Store the filepaths of the images in a csv file, along with their mask, and labels"""
         # Compile the filepaths of the images, their associated massk and team/crop-type into a
         # .csv file which can be accessed by the dataset.
         extensions = ("*.png", "*.jpg", "*.jpeg")
-        for split_folder_name in [self.train_folder_name, self.test_folder_name]:
+        if self._patch_dir.exists():
+            # Ask for confirmation before procedding to delete the existing image-patches
+            while True:
+                answer = input(
+                    f"Image patches already exist at location '{self._patch_dir.resolve()}'. "
+                    "Are you sure you want to overrite them (y/n)?"
+                )
+                if answer.lower().startswith("y"):
+                    shutil.rmtree(self._patch_dir)
+                    break
+                elif answer.lower().startswith("n"):
+                    exit()
+        # The test data only needs to be processed once since we don't generate patches for it
+        folders_to_check = [self.train_folder_name]
+        if not (Path(self.test_folder_name) / "data.csv").exists():
+            folders_to_check.append(self.test_folder_name)
+        for split_folder_name in folders_to_check:
             data_dict: Dict[str, List[str]] = defaultdict(list)
             split_folder = self._dataset_folder / split_folder_name
             for team in get_args(Team):
@@ -364,7 +389,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self,
         data_dir: Union[str, Path],
         train_batch_size: int,
-        teams: Optional[Union[[Team, List[Team]]]] = None,
+        teams: Optional[Union[Team, List[Team]]] = None,
         crop: Optional[Crop] = None,
         val_batch_size: Optional[int] = None,
         num_workers: int = 0,
@@ -380,7 +405,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.download = download
         self.teams = teams
-        self.crop: Optional[Crop] = crop  # For some reason the type needs to be restated here
+        self.crop = crop
 
         if train_batch_size < 1:
             raise ValueError("train_batch_size must be a postivie integer.")
