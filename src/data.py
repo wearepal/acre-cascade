@@ -442,7 +442,11 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         # Assign Train/Val split(s) for use in Dataloaders
         if stage == "fit" or stage is None:  # fitting entails bothing training and validation
             labeled_data = AcreCascadeDataset(
-                self.data_dir, train=True, download=False, teams=self.teams, crop=self.crop
+                self.data_dir,
+                train=True,
+                download=False,
+                teams=self.teams,  # type: ignore
+                crop=self.crop,  # type: ignore
             )
             val_data, train_data = _prop_random_split(labeled_data, props=(self.val_pcnt,))
             # Wrap the datasets in the DataTransformer class to allow for separate transformations
@@ -458,7 +462,11 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         # # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
             test_data = AcreCascadeDataset(
-                self.data_dir, train=False, download=False, teams=self.test_teams, crop=self.crop
+                self.data_dir,
+                train=False,
+                download=False,
+                teams=self.test_teams,  # type: ignore
+                crop=self.crop,  # type: ignore
             )
             self.test_data = _DataTransformer(
                 test_data, train=False, transforms=self.test_transforms

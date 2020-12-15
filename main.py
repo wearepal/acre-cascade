@@ -1,7 +1,7 @@
 """Main script to run."""
 import json
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -32,8 +32,12 @@ def experiment(
     use_amp: bool = typer.Option(False, "--use-amp"),
     seed: Optional[int] = typer.Option(47, "--seed"),
     download: bool = typer.Option(False, "--download", "-dl"),
+    team: Optional[List[str]] = typer.Option(None, "--team"),
+    crop: Optional[str] = typer.Option(None, "--crop"),
 ) -> None:
     """Main script."""
+    if not team:  # Needed because typer converts None to an empty tuple
+        team = None
     # Create a submdir within the output dir named with a timestamp
     run_dir = output_dir / generate_timestamp()
     run_dir.mkdir(parents=True)
@@ -52,8 +56,8 @@ def experiment(
         val_pcnt=val_pcnt,
         num_workers=num_workers,
         download=download,
-        teams=["Roseau"],
-        crop="Haricot",
+        teams=team,  # type: ignore
+        crop=crop,  # type: ignore
     )
 
     # ------------------------
