@@ -288,11 +288,11 @@ class AcreCascadeDataset(_SizedDataset):
         # .csv file which can be accessed by the dataset.
         extensions = ("*.png", "*.jpg", "*.jpeg")
         if self._patch_dir.exists():
-            # Ask for confirmation before procedding to delete the existing image-patches
+            # Ask for confirmation before proceeding to delete the existing image-patches
             while True:
                 answer = input(
                     f"Image patches already exist at location '{self._patch_dir.resolve()}'. "
-                    "Are you sure you want to overrite them (y/n)?"
+                    "Are you sure you want to overwrite them (y/n)?"
                 )
                 if answer.lower().startswith("y"):
                     shutil.rmtree(self._patch_dir)
