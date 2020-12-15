@@ -279,6 +279,7 @@ class AcreCascadeDataset(_SizedDataset):
         # The downloaded data is in the form of a zipfile - extract it into its component directories
         with zipfile.ZipFile(self._base_folder / self.zipfile_name, "r") as fhandle:
             fhandle.extractall(str(self._base_folder))
+        self.process_files()
 
     def process_files(self) -> None:
         """Store the filepaths of the images in a csv file, along with their mask, and labels."""
