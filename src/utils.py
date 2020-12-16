@@ -45,5 +45,5 @@ class MultiLoss:
     def __call__(self, logits: Tensor, mask: Tensor) -> Tensor:
         loss = logits.new_zeros(())
         for loss_fn, prefact in self.loss_fns.items():
-            loss *= prefact * loss_fn(logits, mask)
+            loss += prefact * loss_fn(logits, mask)
         return loss
