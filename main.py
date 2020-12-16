@@ -88,6 +88,7 @@ def experiment(
         logger=logger,
         max_epochs=epochs,
         precision=16 if use_amp else 32,
+        log_every_n_steps=1,
     )
 
     # ------------------------
