@@ -59,7 +59,7 @@ class SegModel(pl.LightningModule, ABC):
         mask = batch.mask.long()
         out = self(img)
         loss_val = self.loss_fn(out, mask)
-        self.log("train_loss", loss_val, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train_loss", loss_val, prog_bar=True, logger=True)
         return {"loss": loss_val}
 
     @implements(pl.LightningModule)
@@ -68,7 +68,7 @@ class SegModel(pl.LightningModule, ABC):
         mask = batch.mask.long()
         out = self(img)
         loss_val = self.loss_fn(out, mask)
-        self.log("val_loss", loss_val, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("val_loss", loss_val, prog_bar=True, logger=True)
         return {"val_loss": loss_val}
 
     @implements(pl.LightningModule)

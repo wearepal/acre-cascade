@@ -39,6 +39,7 @@ setup(
         "typer",
         "typing-extensions",
         "typing-inspect",
+        "wandb",
     ],
     extras_require={
         "dev": [

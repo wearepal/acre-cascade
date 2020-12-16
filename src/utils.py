@@ -28,6 +28,7 @@ class implements:  # pylint: disable=invalid-name
 
 
 def generate_timestamp() -> str:
+    """Make a TimeStamp."""
     return str(int(time.time() - 1601376237))
 
 
@@ -39,10 +40,10 @@ class MultiLoss:
 
     def __init__(self, loss_fns: Dict[Loss, float]):
         """loss_fns should be a dictionary of loss functions and their prefactors."""
-
         self.loss_fns = loss_fns
 
     def __call__(self, logits: Tensor, mask: Tensor) -> Tensor:
+        """Adds the loss functions, weighted by the prefactor."""
         loss = logits.new_zeros(())
         for loss_fn, prefact in self.loss_fns.items():
             loss += prefact * loss_fn(logits, mask)
