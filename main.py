@@ -5,11 +5,10 @@ from typing import List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
-import typer
-
 from src.data import AcreCascadeDataModule
 from src.model import UNetSegModel
 from src.utils import generate_timestamp
+import typer
 
 app = typer.Typer()
 
@@ -23,8 +22,8 @@ def experiment(
     val_pcnt: float = typer.Option(0.2, "--val-pcnt"),
     num_workers: int = typer.Option(4, "--num-workers"),
     lr: float = typer.Option(1.0e-3, "--learning-rate", "-lr"),
-    num_layers: int = typer.Option("--num-layers"),
-    features_start: int = typer.Option("--features-start"),
+    num_layers: int = typer.Option(4, "--num-layers"),
+    features_start: int = typer.Option(32, "--features-start"),
     bilinear: bool = typer.Option(False, "--bilinear"),
     log_to_wandb: bool = typer.Option(False, "--log-to-wandb"),
     gpus: int = typer.Option(0, "--gpus"),
