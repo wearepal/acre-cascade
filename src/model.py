@@ -74,7 +74,7 @@ class SegModel(pl.LightningModule, ABC):
                     to_pil_image(_img),
                     masks={
                         "predictions": {
-                            "mask_data": _out.argmax(dim=0).t().cpu().numpy(),
+                            "mask_data": _out.argmax(dim=0).cpu().numpy(),
                             "class_labels": CLASS_LABELS,
                         },
                         "groud_truth": {
