@@ -36,7 +36,7 @@ class Config:
     num_layers: int = 4
     features_start: int = 32
     bilinear: bool = False
-    log_to_wandb: bool = False
+    log_offline: bool = False
     gpus: int = 0
     epochs: int = 100
     use_amp: bool = False
@@ -94,7 +94,7 @@ def main(cfg: Config) -> None:
     # ------------------------
     # 3 SET LOGGER
     # ------------------------
-    logger = WandbLogger(offline=not cfg.log_to_wandb)
+    logger = WandbLogger(offline=cfg.log_offline)
 
     # ------------------------
     # 4 INIT TRAINER
