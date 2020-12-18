@@ -58,7 +58,7 @@ class SegModel(pl.LightningModule, ABC):
         return [opt], [sch]
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: TrainBatch, batch_index: int) -> Dict[str, Tensor]:
+    def training_step(self, batch: TrainBatch, batch_index: int) -> Tensor:
         img = batch.image.float()
         mask = batch.mask.long()
         out = self(img)
@@ -86,10 +86,10 @@ class SegModel(pl.LightningModule, ABC):
                 logging_dict["training/predictions"] = mask_list
         self.logger.experiment.log(logging_dict)
 
-        return {"train_loss": loss}
+        return loss
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: TrainBatch, batch_idx: int) -> Dict[str, Tensor]:
+    def validation_step(self, batch: TrainBatch, batch_idx: int) -> Tensor:
         img = batch.image.float()
         mask = batch.mask.long()
         out = self(img)
@@ -117,7 +117,7 @@ class SegModel(pl.LightningModule, ABC):
             logging_dict["validation/predictions"] = mask_list
         self.logger.experiment.log(logging_dict)
 
-        return {"val_loss": loss}
+        return loss
 
     @implements(pl.LightningModule)
     def test_step(self, batch: TestBatch, batch_idx: int) -> Dict[str, Dict[str, Any]]:
