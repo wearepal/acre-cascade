@@ -1,6 +1,6 @@
 """Test the submission."""
-
 from dataclasses import asdict
+import json
 from pathlib import Path
 
 from torch import from_numpy
@@ -17,15 +17,23 @@ def test_mask_to_json():
 
     tensor_mask = from_numpy(mask)
 
-    batch = ("bob.jpg", "Bipbip", "Haricot", tensor_mask)
-    filename, submission_dict = sample_to_submission(*batch)
+    batch = ("arr_mask_example", "Bipbip", "Haricot", tensor_mask)
+    submission_dict = sample_to_submission(*batch)
 
-    assert filename == "bob.jpg"
+    assert submission_dict.filename == "arr_mask_example"
     assert submission_dict.shape == [1536, 2048]
     assert submission_dict.team == "Bipbip"
     assert submission_dict.crop == "Haricot"
     assert submission_dict.segmentation.crop is not None
     assert submission_dict.segmentation.weed is not None
+
+    submission_dict = asdict(submission_dict)
+    submission_dict = {submission_dict.pop("filename"): submission_dict}
+
+    sample = base_path / "sample_submission.json"
+    with open(f"{sample}") as json_file:
+        sample_json = json.load(json_file)
+    assert sample_json == submission_dict
 
 
 def test_batch():
@@ -42,8 +50,8 @@ def test_batch():
     ]
 
     submission = {
-        filename: asdict(_sub)
-        for filename, _sub in [sample_to_submission(a, b, c, d) for a, b, c, d in batch]
+        _sub.filename: asdict(_sub)
+        for _sub in [sample_to_submission(a, b, c, d) for a, b, c, d in batch]
     }
 
     for _file, _team, _crop, _ in batch:

@@ -1,7 +1,7 @@
 """Submission generation functions."""
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 
@@ -21,7 +21,7 @@ class Submission:
     """Submission definition."""
 
     filename: str
-    shape: Tuple[int, ...]
+    shape: List[int]
     team: Team
     crop: Crop
     segmentation: Segmentation
@@ -60,7 +60,7 @@ def sample_to_submission(
     segmentation_obj = Segmentation(crop=rle_encode(mask == 1), weed=rle_encode(mask == 2))
     return Submission(
         filename=filename,
-        shape=mask.shape,
+        shape=list(mask.shape),
         team=team_name,
         crop=crop_name,
         segmentation=segmentation_obj,
