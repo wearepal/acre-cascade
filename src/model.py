@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pl_examples.domain_templates.unet import UNet
 import pytorch_lightning as pl
-from pytorch_lightning.metrics.functional.classification import dice_score
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
@@ -17,7 +16,7 @@ from torchvision.transforms.functional import to_pil_image
 
 from src.data import TestBatch, TrainBatch
 from src.submission_generation import Submission, sample_to_submission
-from src.utils import Loss, MultiLoss, implements
+from src.utils import Loss, implements
 import wandb
 
 __all__ = ["SegModel", "UNetSegModel"]
@@ -26,12 +25,7 @@ __all__ = ["SegModel", "UNetSegModel"]
 class SegModel(pl.LightningModule, ABC):
     """The base class for Lightning-based Semantic Segmentation Modules."""
 
-    def __init__(
-        self,
-        num_classes: int,
-        lr: float = 1.0e-3,
-        loss_fn: Loss = MultiLoss({nn.CrossEntropyLoss(): 1.0, dice_score: 0.1}),
-    ):
+    def __init__(self, num_classes: int, lr: float = 1.0e-3, loss_fn: Loss = nn.CrossEntropyLoss()):
         super().__init__()
         self.learning_rate = lr
         self.num_classes = num_classes
@@ -125,15 +119,13 @@ class UNetSegModel(SegModel):
         features_start: int,
         bilinear: bool,
         lr: float,
+        loss_fn: Loss = nn.CrossEntropyLoss(),
     ):
         self.num_layers = num_layers
         self.features_start = features_start
         self.bilinear = bilinear
 
-        super().__init__(
-            num_classes=num_classes,
-            lr=lr,
-        )
+        super().__init__(num_classes=num_classes, lr=lr, loss_fn=loss_fn)
 
     @implements(SegModel)
     def build(self) -> nn.Module:

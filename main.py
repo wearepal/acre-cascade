@@ -5,10 +5,12 @@ from typing import List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from torch.nn.modules.loss import CrossEntropyLoss
+import typer
+
 from src.data import AcreCascadeDataModule
 from src.model import UNetSegModel
-from src.utils import generate_timestamp
-import typer
+from src.utils import DiceLoss, MultiLoss, generate_timestamp
 
 app = typer.Typer()
 
@@ -33,6 +35,8 @@ def experiment(
     download: bool = typer.Option(False, "--download", "-dl"),
     team: Optional[List[str]] = typer.Option(None, "--team"),
     crop: Optional[str] = typer.Option(None, "--crop"),
+    xent_weight: float = typer.Option(1.0, "--xent-weight"),
+    dice_weight: float = typer.Option(1.0, "--dice-weight"),
 ) -> None:
     """Main script."""
     if not team:  # Needed because typer converts None to an empty tuple
@@ -62,12 +66,14 @@ def experiment(
     # ------------------------
     # 2 INIT LIGHTNING MODEL
     # ------------------------
+    loss_fn = MultiLoss({CrossEntropyLoss(): xent_weight, DiceLoss(): dice_weight})
     model = UNetSegModel(
         num_classes=dm.num_classes,
         num_layers=num_layers,
         features_start=features_start,
         lr=lr,
         bilinear=bilinear,
+        loss_fn=loss_fn,
     )
 
     # ------------------------
