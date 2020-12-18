@@ -13,12 +13,12 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.tensor import Tensor
 from torchvision.transforms.functional import to_pil_image
-import wandb
 
 from src.data import CLASS_LABELS, TestBatch, TrainBatch
 from src.loss import Loss
 from src.submission_generation import Submission, sample_to_submission
 from src.utils import implements
+import wandb
 
 __all__ = ["SegModel", "UNetSegModel"]
 
@@ -57,6 +57,27 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss_val = self.loss_fn(out, mask)
         self.log("train_loss", loss_val, prog_bar=True, logger=True)
+
+        if batch_index % 50 == 0:
+            mask_list = []
+            for _img, _mask, _out in zip(img, mask, out):
+                mask_img = wandb.Image(
+                    to_pil_image(_img),
+                    masks={
+                        "predictions": {
+                            "mask_data": _out.argmax(dim=0).cpu().numpy(),
+                            "class_labels": CLASS_LABELS,
+                        },
+                        "groud_truth": {
+                            "mask_data": _mask.t().cpu().numpy(),
+                            "class_labels": CLASS_LABELS,
+                        },
+                    },
+                )
+                mask_list.append(mask_img)
+            if self.logger is not None:
+                self.logger.experiment.log({"training/predictions": mask_list})
+
         return {"loss": loss_val}
 
     @implements(pl.LightningModule)
@@ -85,7 +106,7 @@ class SegModel(pl.LightningModule, ABC):
                 )
                 mask_list.append(mask_img)
             if self.logger is not None:
-                self.logger.experiment.log({"predictions": mask_list})
+                self.logger.experiment.log({"validation/predictions": mask_list})
 
         return {"val_loss": loss_val}
 
