@@ -4,7 +4,7 @@ from enum import Enum
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import hydra
 from hydra.core.config_store import ConfigStore
@@ -36,16 +36,17 @@ class Config:
     num_layers: int = 4
     features_start: int = 32
     bilinear: bool = False
-    log_to_wandb: bool = False
+    log_offline: bool = False
     gpus: int = 0
     epochs: int = 100
     use_amp: bool = False
     seed: Optional[int] = 47
     download: bool = False
-    team: Optional[List[Team]] = None
+    teams: Optional[List[Team]] = None
     crop: Optional[Crop] = None
     xent_weight: float = 1.0
     dice_weight: float = 1.0
+    T_max: int = 10
 
 
 cs = ConfigStore.instance()
@@ -74,7 +75,7 @@ def main(cfg: Config) -> None:
         val_pcnt=cfg.val_pcnt,
         num_workers=cfg.num_workers,
         download=cfg.download,
-        teams=None if cfg.team is None else [team.name for team in cfg.team],  # type: ignore
+        teams=None if cfg.teams is None else [team.name for team in cfg.teams],  # type: ignore
         crop=None if cfg.crop is None else cfg.crop.name,  # type: ignore
     )
 
@@ -89,16 +90,15 @@ def main(cfg: Config) -> None:
         lr=cfg.lr,
         bilinear=cfg.bilinear,
         loss_fn=loss_fn,
+        T_max=cfg.T_max,
     )
 
     # ------------------------
     # 3 SET LOGGER
     # ------------------------
-    logger: Union[bool, WandbLogger] = False
-    if cfg.log_to_wandb:
-        logger = WandbLogger(config=OmegaConf.to_container(cfg, resolve=True, enum_to_str=True))
-        # optional: log model topology
-        # logger.watch(model.net)
+    logger = WandbLogger(
+        config=OmegaConf.to_container(cfg, resolve=True, enum_to_str=True), offline=cfg.log_offline
+    )
 
     # ------------------------
     # 4 INIT TRAINER
