@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 
 import hydra
 from hydra.core.config_store import ConfigStore
+from hydra.utils import to_absolute_path
 from omegaconf import MISSING, OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -53,7 +54,7 @@ cs.store(name="config", node=Config)
 def main(cfg: Config) -> None:
     """Main script."""
     # Create a submdir within the output dir named with a timestamp
-    output_dir = Path(cfg.output_dir)
+    output_dir = Path(to_absolute_path(cfg.output_dir))
     run_dir = output_dir / generate_timestamp()
     run_dir.mkdir(parents=True)
 
@@ -65,7 +66,7 @@ def main(cfg: Config) -> None:
     # 1 INIT DATAMODULE
     # ------------------------
     dm = AcreCascadeDataModule(
-        data_dir=Path(cfg.data_dir),
+        data_dir=Path(to_absolute_path(cfg.data_dir)),
         train_batch_size=cfg.train_batch_size,
         val_batch_size=cfg.val_batch_size,
         val_pcnt=cfg.val_pcnt,
