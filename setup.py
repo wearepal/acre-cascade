@@ -29,6 +29,7 @@ setup(
     package_data={},
     python_requires=">=3.6",
     install_requires=[
+        "hydra-core",
         "pillow",
         "pytorch-lightning",
         "requests",
@@ -36,7 +37,6 @@ setup(
         "seaborn",
         "torchvision",
         "tqdm",
-        "typer",
         "typing-extensions",
         "typing-inspect",
         "wandb",

@@ -1,95 +1,109 @@
 """Main script to run."""
+from dataclasses import dataclass
+from enum import Enum
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional, Union
 
+import hydra
+from hydra.core.config_store import ConfigStore
+from hydra.utils import to_absolute_path
+from omegaconf import MISSING, OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from torch.nn.modules.loss import CrossEntropyLoss
-import typer
 
 from src.data import AcreCascadeDataModule
 from src.loss import DiceLoss, MultiLoss
 from src.model import UNetSegModel
 from src.utils import generate_timestamp
 
-app = typer.Typer()
+Team = Enum("Team", "Bipbip Pead Roseau Weedelec")
+Crop = Enum("Crop", "Haricot Mais")
+LOGGER = logging.getLogger(__name__)
 
 
-@app.command(context_settings={"ignore_unknown_options": True})
-def experiment(
-    data_dir: Path = typer.Option("data", "--data-dir", "-d"),
-    output_dir: Path = typer.Option("output", "--output", "-o"),
-    train_batch_size: int = typer.Option(16, "--train-batch-size"),
-    val_batch_size: int = typer.Option(32, "--val-batch-size"),
-    val_pcnt: float = typer.Option(0.2, "--val-pcnt"),
-    num_workers: int = typer.Option(4, "--num-workers"),
-    lr: float = typer.Option(1.0e-3, "--learning-rate", "-lr"),
-    num_layers: int = typer.Option(4, "--num-layers"),
-    features_start: int = typer.Option(32, "--features-start"),
-    bilinear: bool = typer.Option(False, "--bilinear"),
-    log_to_wandb: bool = typer.Option(False, "--log-to-wandb"),
-    gpus: int = typer.Option(0, "--gpus"),
-    epochs: int = typer.Option(100, "--epochs"),
-    use_amp: bool = typer.Option(False, "--use-amp"),
-    seed: Optional[int] = typer.Option(47, "--seed"),
-    download: bool = typer.Option(False, "--download", "-dl"),
-    team: Optional[List[str]] = typer.Option(None, "--team"),
-    crop: Optional[str] = typer.Option(None, "--crop"),
-    xent_weight: float = typer.Option(1.0, "--xent-weight"),
-    dice_weight: float = typer.Option(1.0, "--dice-weight"),
-) -> None:
+@dataclass
+class Config:
+    data_dir: str = MISSING
+    output_dir: str = MISSING
+    train_batch_size: int = 16
+    val_batch_size: int = 32
+    val_pcnt: float = 0.2
+    num_workers: int = 4
+    lr: float = 1.0e-3
+    num_layers: int = 4
+    features_start: int = 32
+    bilinear: bool = False
+    log_to_wandb: bool = False
+    gpus: int = 0
+    epochs: int = 100
+    use_amp: bool = False
+    seed: Optional[int] = 47
+    download: bool = False
+    team: Optional[List[Team]] = None
+    crop: Optional[Crop] = None
+    xent_weight: float = 1.0
+    dice_weight: float = 1.0
+
+
+cs = ConfigStore.instance()
+cs.store(name="config", node=Config)
+
+
+@hydra.main(config_name="config")
+def main(cfg: Config) -> None:
     """Main script."""
-    if not team:  # Needed because typer converts None to an empty tuple
-        team = None
     # Create a submdir within the output dir named with a timestamp
+    output_dir = Path(to_absolute_path(cfg.output_dir))
     run_dir = output_dir / generate_timestamp()
     run_dir.mkdir(parents=True)
 
     # Set all seeds for reproducibility
-    if seed is not None:
-        pl.seed_everything(seed=seed)
+    if cfg.seed is not None:
+        pl.seed_everything(seed=cfg.seed)
 
     # ------------------------
     # 1 INIT DATAMODULE
     # ------------------------
     dm = AcreCascadeDataModule(
-        data_dir=data_dir,
-        train_batch_size=train_batch_size,
-        val_batch_size=val_batch_size,
-        val_pcnt=val_pcnt,
-        num_workers=num_workers,
-        download=download,
-        teams=team,  # type: ignore
-        crop=crop,  # type: ignore
+        data_dir=Path(to_absolute_path(cfg.data_dir)),
+        train_batch_size=cfg.train_batch_size,
+        val_batch_size=cfg.val_batch_size,
+        val_pcnt=cfg.val_pcnt,
+        num_workers=cfg.num_workers,
+        download=cfg.download,
+        teams=None if cfg.team is None else [team.name for team in cfg.team],  # type: ignore
+        crop=None if cfg.crop is None else cfg.crop.name,  # type: ignore
     )
 
     # ------------------------
     # 2 INIT LIGHTNING MODEL
     # ------------------------
-    loss_fn = MultiLoss({CrossEntropyLoss(): xent_weight, DiceLoss(): dice_weight})
+    loss_fn = MultiLoss({CrossEntropyLoss(): cfg.xent_weight, DiceLoss(): cfg.dice_weight})
     model = UNetSegModel(
         num_classes=dm.num_classes,
-        num_layers=num_layers,
-        features_start=features_start,
-        lr=lr,
-        bilinear=bilinear,
+        num_layers=cfg.num_layers,
+        features_start=cfg.features_start,
+        lr=cfg.lr,
+        bilinear=cfg.bilinear,
         loss_fn=loss_fn,
     )
 
     # ------------------------
     # 3 SET LOGGER
     # ------------------------
-    logger = WandbLogger(offline=not log_to_wandb)
+    logger = WandbLogger(offline=not cfg.log_to_wandb)
 
     # ------------------------
     # 4 INIT TRAINER
     # ------------------------
     trainer = pl.Trainer(
-        gpus=gpus,
+        gpus=cfg.gpus,
         logger=logger,
-        max_epochs=epochs,
-        precision=16 if use_amp else 32,
+        max_epochs=cfg.epochs,
+        precision=16 if cfg.use_amp else 32,
         log_every_n_steps=1,
     )
 
@@ -109,8 +123,8 @@ def experiment(
     submission_fp = run_dir / "submission.json"
     with open(submission_fp, "w") as f:
         json.dump(model.submission, f)
-    typer.echo(f"Submission saved to {submission_fp.resolve()}")
+    LOGGER.info(f"Submission saved to {submission_fp.resolve()}")
 
 
 if __name__ == "__main__":
-    app()
+    main()

@@ -11,7 +11,6 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
-    Final,
     Iterator,
     List,
     Optional,
@@ -35,7 +34,7 @@ from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
 import torchvision.transforms.functional as TF
 from tqdm import tqdm
-from typing_extensions import Literal, Protocol
+from typing_extensions import Final, Literal, Protocol
 from typing_inspect import get_args
 
 from src.utils import implements
@@ -191,7 +190,8 @@ class AcreCascadeDataset(_SizedDataset):
             self._download_data()
         elif not self._check_downloaded():
             raise RuntimeError(
-                f"Images don't exist at location {self._base_folder}. Have you downloaded them?"
+                f"Images don't exist at location {self._base_folder.resolve()}. "
+                "Have you downloaded them?"
             )
         if not self._patch_dir.exists():
             self.process_files()
