@@ -86,7 +86,7 @@ class SegModel(pl.LightningModule, ABC):
                 )
                 mask_list.append(mask_img)
             if self.logger is not None:
-                self.logger.experimnet.log({"predictions": mask_img})
+                self.logger.experiment.log({"predictions": mask_img})
 
         return {"val_loss": loss_val}
 
