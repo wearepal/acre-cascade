@@ -94,6 +94,7 @@ class MultiLoss(nn.Module):
 
     def __init__(self, loss_fns: Dict[Loss, float]):
         """loss_fns should be a dictionary of loss functions and their prefactors."""
+        super().__init__()
         self.loss_fns = loss_fns
 
     def forward(self, logits: Tensor, mask: Tensor) -> Tensor:
