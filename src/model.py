@@ -26,12 +26,19 @@ __all__ = ["SegModel", "UNetSegModel"]
 class SegModel(pl.LightningModule, ABC):
     """The base class for Lightning-based Semantic Segmentation Modules."""
 
-    def __init__(self, num_classes: int, lr: float = 1.0e-3, loss_fn: Loss = nn.CrossEntropyLoss()):
+    def __init__(
+        self,
+        num_classes: int,
+        lr: float = 1.0e-3,
+        loss_fn: Loss = nn.CrossEntropyLoss(),
+        T_max: int = 10,
+    ):
         super().__init__()
         self.learning_rate = lr
         self.num_classes = num_classes
-
         self.loss_fn = loss_fn
+        self.T_max = T_max
+
         self.net = self.build()
         self.submission: Optional[Dict[str, Any]] = None
 
@@ -47,16 +54,16 @@ class SegModel(pl.LightningModule, ABC):
     @implements(pl.LightningModule)
     def configure_optimizers(self) -> Tuple[List[Optimizer], List[_LRScheduler]]:
         opt = Adam(self.net.parameters(), lr=self.learning_rate)
-        sch = CosineAnnealingLR(opt, T_max=10)
+        sch = CosineAnnealingLR(opt, T_max=self.T_max)
         return [opt], [sch]
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: TrainBatch, batch_index: int) -> Dict[str, Any]:
+    def training_step(self, batch: TrainBatch, batch_index: int) -> Tensor:
         img = batch.image.float()
         mask = batch.mask.long()
         out = self(img)
-        loss_val = self.loss_fn(out, mask)
-        logging_dict = {"train_loss": loss_val, "prog_bar": True, "logger": True}
+        loss = self.loss_fn(out, mask)
+        logging_dict: Dict[str, Any] = {"train_loss": loss}
 
         if batch_index % 50 == 0:
             mask_list = []
@@ -78,15 +85,15 @@ class SegModel(pl.LightningModule, ABC):
                 logging_dict["training/predictions"] = mask_list
         self.logger.experiment.log(logging_dict)
 
-        return {"loss": loss_val}
+        return loss
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: TrainBatch, batch_idx: int) -> Dict[str, Any]:
+    def validation_step(self, batch: TrainBatch, batch_idx: int) -> Tensor:
         img = batch.image.float()
         mask = batch.mask.long()
         out = self(img)
-        loss_val = self.loss_fn(out, mask)
-        logging_dict = {"val_loss": loss_val, "prog_bar": True, "logger": True}
+        loss = self.loss_fn(out, mask)
+        logging_dict: Dict[str, Any] = {"val_loss": loss}
 
         if batch_idx == 0:
             mask_list = []
@@ -108,7 +115,7 @@ class SegModel(pl.LightningModule, ABC):
             logging_dict["validation/predictions"] = mask_list
 
         self.logger.experiment.log(logging_dict)
-        return {"val_loss": loss_val}
+        return loss
 
     @implements(pl.LightningModule)
     def test_step(self, batch: TestBatch, batch_idx: int) -> Dict[str, Dict[str, Any]]:
@@ -140,12 +147,13 @@ class UNetSegModel(SegModel):
         bilinear: bool,
         lr: float,
         loss_fn: Loss = nn.CrossEntropyLoss(),
+        T_max: int = 10,
     ):
         self.num_layers = num_layers
         self.features_start = features_start
         self.bilinear = bilinear
 
-        super().__init__(num_classes=num_classes, lr=lr, loss_fn=loss_fn)
+        super().__init__(num_classes=num_classes, lr=lr, loss_fn=loss_fn, T_max=T_max)
 
     @implements(SegModel)
     def build(self) -> nn.Module:
