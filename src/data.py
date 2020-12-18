@@ -2,6 +2,7 @@
 
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -40,6 +41,7 @@ from src.utils import implements
 
 __all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
 
+LOGGER = logging.getLogger(__name__)
 
 Team = Literal["Bipbip", "Pead", "Roseau", "Weedelec"]
 Crop = Literal["Haricot", "Mais"]
@@ -271,7 +273,7 @@ class AcreCascadeDataset(_SizedDataset):
         # Check whether the data has already been downloaded - if it has and the integrity
         # of the files can be confirmed, then we are done
         if self._check_downloaded():
-            print("Files already downloaded and verified")
+            LOGGER.info("Files already downloaded and verified")
             return
         # Create the directory and any required ancestors if not already existent
         if not self._base_folder.exists():
@@ -299,8 +301,13 @@ class AcreCascadeDataset(_SizedDataset):
                     break
                 elif answer.lower().startswith("n"):
                     exit()
+
         # The test data only needs to be processed once since we don't generate patches for it
         folders_to_check = [self.train_folder_name]
+        LOGGER.info(
+            "Processing image-files."
+            "This may take a while as patches needed to be generated for the training data."
+        )
         if not (Path(self.test_folder_name) / "data.csv").exists():
             folders_to_check.append(self.test_folder_name)
         for split_folder_name in folders_to_check:
@@ -343,6 +350,7 @@ class AcreCascadeDataset(_SizedDataset):
             data_df = pd.DataFrame(data_dict)  # type: ignore
             # Save the dataframe to the split-specific folder
             data_df.to_csv(split_folder / "data.csv")
+            LOGGER.info("Finished processing image-files.")
 
     @implements(_SizedDataset)
     def __len__(self) -> int:
