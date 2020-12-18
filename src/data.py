@@ -11,6 +11,7 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
+    Final,
     Iterator,
     List,
     Optional,
@@ -42,6 +43,8 @@ from src.utils import implements
 __all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
 
 LOGGER = logging.getLogger(__name__)
+
+CLASS_LABELS: Final[Dict[int, str]] = {0: "background", 1: "crop", 2: "weed"}
 
 Team = Literal["Bipbip", "Pead", "Roseau", "Weedelec"]
 Crop = Literal["Haricot", "Mais"]

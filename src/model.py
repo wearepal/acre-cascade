@@ -15,7 +15,7 @@ from torch.tensor import Tensor
 from torchvision.transforms.functional import to_pil_image
 import wandb
 
-from src.data import TestBatch, TrainBatch
+from src.data import CLASS_LABELS, TestBatch, TrainBatch
 from src.loss import Loss
 from src.submission_generation import Submission, sample_to_submission
 from src.utils import implements
@@ -67,21 +67,19 @@ class SegModel(pl.LightningModule, ABC):
         loss_val = self.loss_fn(out, mask)
         self.log("val_loss", loss_val, prog_bar=True, logger=True)
 
-        class_labels = {0: "background", 1: "crop", 2: "weed"}
-
         if batch_idx == 0:
             mask_list = []
-            for i, (_img, _mask, _out) in enumerate(zip(img, mask, out)):
+            for _img, _mask, _out in zip(img, mask, out):
                 mask_img = wandb.Image(
                     to_pil_image(_img),
                     masks={
                         "predictions": {
-                            "mask_data": _out.argmax(dim=0).transpose(0, 1).cpu().numpy(),
-                            "class_labels": class_labels,
+                            "mask_data": _out.argmax(dim=0).t().cpu().numpy(),
+                            "class_labels": CLASS_LABELS,
                         },
                         "groud_truth": {
-                            "mask_data": _mask.transpose(0, 1).cpu().numpy(),
-                            "class_labels": class_labels,
+                            "mask_data": _mask.t().cpu().numpy(),
+                            "class_labels": CLASS_LABELS,
                         },
                     },
                 )
