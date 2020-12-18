@@ -13,11 +13,12 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.tensor import Tensor
 from torchvision.transforms.functional import to_pil_image
+import wandb
 
 from src.data import TestBatch, TrainBatch
+from src.loss import Loss
 from src.submission_generation import Submission, sample_to_submission
-from src.utils import Loss, implements
-import wandb
+from src.utils import implements
 
 __all__ = ["SegModel", "UNetSegModel"]
 

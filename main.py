@@ -9,8 +9,9 @@ from torch.nn.modules.loss import CrossEntropyLoss
 import typer
 
 from src.data import AcreCascadeDataModule
+from src.loss import DiceLoss, MultiLoss
 from src.model import UNetSegModel
-from src.utils import DiceLoss, MultiLoss, generate_timestamp
+from src.utils import generate_timestamp
 
 app = typer.Typer()
 
