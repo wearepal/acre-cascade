@@ -84,7 +84,7 @@ def experiment(
     if log_to_wandb:
         logger = WandbLogger()
         # optional: log model topology
-        logger.watch(model.net)
+        # logger.watch(model.net)
 
     # ------------------------
     # 4 INIT TRAINER
