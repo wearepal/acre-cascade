@@ -13,10 +13,12 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.tensor import Tensor
+from torchvision.transforms.functional import to_pil_image
 
 from src.data import TestBatch, TrainBatch
 from src.submission_generation import Submission, sample_to_submission
 from src.utils import Loss, MultiLoss, implements
+import wandb
 
 __all__ = ["SegModel", "UNetSegModel"]
 
@@ -69,6 +71,29 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss_val = self.loss_fn(out, mask)
         self.log("val_loss", loss_val, prog_bar=True, logger=True)
+
+        class_labels = {0: "background", 1: "crop", 2: "weed"}
+
+        if batch_idx == 0:
+            mask_list = []
+            for i, (_img, _mask, _out) in enumerate(zip(img, mask, out)):
+                mask_img = wandb.Image(
+                    to_pil_image(_img),
+                    masks={
+                        "predictions": {
+                            "mask_data": _out.argmax(dim=0).transpose(0, 1).cpu().numpy(),
+                            "class_labels": class_labels,
+                        },
+                        "groud_truth": {
+                            "mask_data": _mask.transpose(0, 1).cpu().numpy(),
+                            "class_labels": class_labels,
+                        },
+                    },
+                )
+                mask_list.append(mask_img)
+            if self.logger is not None:
+                self.logger.experimnet.log({"predictions": mask_img})
+
         return {"val_loss": loss_val}
 
     @implements(pl.LightningModule)
