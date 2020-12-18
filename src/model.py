@@ -64,7 +64,7 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("train_loss", loss, prog_bar=True, logger=False)
-        logging_dict: Dict[str, Any] = {"train/loss": loss}
+        logging_dict: Dict[str, Any] = {"training/loss": loss}
 
         if batch_index % 50 == 0:
             mask_list = []
@@ -95,7 +95,7 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("val_loss", loss, prog_bar=True, logger=False)
-        logging_dict: Dict[str, Any] = {"val/loss": loss}
+        logging_dict: Dict[str, Any] = {"validation/loss": loss}
 
         if batch_idx == 0:
             mask_list = []

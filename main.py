@@ -4,7 +4,7 @@ from enum import Enum
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import hydra
 from hydra.core.config_store import ConfigStore
@@ -94,7 +94,9 @@ def main(cfg: Config) -> None:
     # ------------------------
     # 3 SET LOGGER
     # ------------------------
-    logger = WandbLogger(offline=cfg.log_offline)
+    logger = WandbLogger(
+        config=OmegaConf.to_container(cfg, resolve=True, enum_to_str=True), offline=cfg.log_offline
+    )
 
     # ------------------------
     # 4 INIT TRAINER
