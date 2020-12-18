@@ -37,7 +37,6 @@ setup(
         "seaborn",
         "torchvision",
         "tqdm",
-        "typer",
         "typing-extensions",
         "typing-inspect",
         "wandb",

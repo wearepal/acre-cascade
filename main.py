@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -20,6 +21,7 @@ from src.utils import generate_timestamp
 
 Team = Enum("Team", "Bipbip Pead Roseau Weedelec")
 Crop = Enum("Crop", "Haricot Mais")
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -125,7 +127,7 @@ def main(cfg: Config) -> None:
     submission_fp = run_dir / "submission.json"
     with open(submission_fp, "w") as f:
         json.dump(model.submission, f)
-    print(f"Submission saved to {submission_fp.resolve()}")
+    LOGGER.info(f"Submission saved to {submission_fp.resolve()}")
 
 
 if __name__ == "__main__":
