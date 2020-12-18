@@ -46,6 +46,7 @@ class Config:
     crop: Optional[Crop] = None
     xent_weight: float = 1.0
     dice_weight: float = 1.0
+    T_max: int = 10
 
 
 cs = ConfigStore.instance()
@@ -89,6 +90,7 @@ def main(cfg: Config) -> None:
         lr=cfg.lr,
         bilinear=cfg.bilinear,
         loss_fn=loss_fn,
+        T_max=cfg.T_max,
     )
 
     # ------------------------
