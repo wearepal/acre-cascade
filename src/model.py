@@ -13,12 +13,12 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.tensor import Tensor
 from torchvision.transforms.functional import to_pil_image
+import wandb
 
 from src.data import CLASS_LABELS, TestBatch, TrainBatch
 from src.loss import Loss
 from src.submission_generation import Submission, sample_to_submission
 from src.utils import implements
-import wandb
 
 __all__ = ["SegModel", "UNetSegModel"]
 
@@ -56,7 +56,7 @@ class SegModel(pl.LightningModule, ABC):
         mask = batch.mask.long()
         out = self(img)
         loss_val = self.loss_fn(out, mask)
-        self.log("train_loss", loss_val, prog_bar=True, logger=True)
+        logging_dict = {"train_loss": loss_val, "prog_bar": True, "logger": True}
 
         if batch_index % 50 == 0:
             mask_list = []
@@ -75,8 +75,8 @@ class SegModel(pl.LightningModule, ABC):
                     },
                 )
                 mask_list.append(mask_img)
-            if self.logger is not None:
-                self.logger.experiment.log({"training/predictions": mask_list})
+                logging_dict["training/predictions"] = mask_list
+        self.logger.experiment.log(logging_dict)
 
         return {"loss": loss_val}
 
@@ -86,7 +86,7 @@ class SegModel(pl.LightningModule, ABC):
         mask = batch.mask.long()
         out = self(img)
         loss_val = self.loss_fn(out, mask)
-        self.log("val_loss", loss_val, prog_bar=True, logger=True)
+        logging_dict = {"val_loss": loss_val, "prog_bar": True, "logger": True}
 
         if batch_idx == 0:
             mask_list = []
@@ -105,9 +105,9 @@ class SegModel(pl.LightningModule, ABC):
                     },
                 )
                 mask_list.append(mask_img)
-            if self.logger is not None:
-                self.logger.experiment.log({"validation/predictions": mask_list})
+            logging_dict["validation/predictions"] = mask_list
 
+        self.logger.experiment.log(logging_dict)
         return {"val_loss": loss_val}
 
     @implements(pl.LightningModule)

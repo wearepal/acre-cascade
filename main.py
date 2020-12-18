@@ -80,11 +80,7 @@ def experiment(
     # ------------------------
     # 3 SET LOGGER
     # ------------------------
-    logger: Union[bool, WandbLogger] = False
-    if log_to_wandb:
-        logger = WandbLogger()
-        # optional: log model topology
-        logger.watch(model.net)
+    logger = WandbLogger(offline=not log_to_wandb)
 
     # ------------------------
     # 4 INIT TRAINER
