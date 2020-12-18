@@ -50,8 +50,6 @@ class DiceLoss:
         self.no_fg_score = no_fg_score
         self.reduction = reduction
 
-    super().__init__()
-
     def __call__(self, logits: Tensor, mask: Tensor) -> Tensor:
         probs = logits.softmax(dim=1)
         return dice_score(
