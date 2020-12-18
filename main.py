@@ -42,7 +42,7 @@ class Config:
     use_amp: bool = False
     seed: Optional[int] = 47
     download: bool = False
-    team: Optional[List[Team]] = None
+    teams: Optional[List[Team]] = None
     crop: Optional[Crop] = None
     xent_weight: float = 1.0
     dice_weight: float = 1.0
@@ -74,7 +74,7 @@ def main(cfg: Config) -> None:
         val_pcnt=cfg.val_pcnt,
         num_workers=cfg.num_workers,
         download=cfg.download,
-        teams=None if cfg.team is None else [team.name for team in cfg.team],  # type: ignore
+        teams=None if cfg.teams is None else [team.name for team in cfg.teams],  # type: ignore
         crop=None if cfg.crop is None else cfg.crop.name,  # type: ignore
     )
 
