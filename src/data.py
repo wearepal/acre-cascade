@@ -23,9 +23,13 @@ from urllib.request import urlopen
 
 from PIL import Image
 import numpy as np
+import requests
+from tqdm import tqdm
+from typing_extensions import Final, Literal, Protocol
+
 import pandas as pd
 import pytorch_lightning as pl
-import requests
+from src.utils import implements
 import torch
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
@@ -33,11 +37,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
 import torchvision.transforms.functional as TF
-from tqdm import tqdm
-from typing_extensions import Final, Literal, Protocol
 from typing_inspect import get_args
-
-from src.utils import implements
 
 __all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
 
@@ -238,7 +238,7 @@ class AcreCascadeDataset(_SizedDataset):
         return self._dataset_folder.is_dir()
 
     def _generate_patches(self, image_fp: Path, team: str, crop: str) -> Dict[str, List[str]]:
-        """Generate image patches for a single training image and it's associated mask."""
+        """Generate image patches for a single training image along with those for its mask."""
         mask_fp = (image_fp.parent.parent / "Masks" / image_fp.stem).with_suffix(".png")
         image_patch_dir = self._patch_dir / "Images" / team / crop / image_fp.stem
         image_patch_dir.mkdir(parents=True, exist_ok=True)
