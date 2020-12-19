@@ -461,7 +461,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
                 train_data, train=True, transforms=self.train_transforms
             )
             self.val_data = _DataTransformer(val_data, train=True, transforms=self.test_transforms)
-            self.dims = InputShape(*self.train_data[0].image.shape)
+            self.dims = InputShape(*self.train_data[0][0].shape)
 
         # # Assign Test split(s) for use in Dataloaders
         if stage == "test" or stage is None:
@@ -475,7 +475,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
             self.test_data = _DataTransformer(
                 test_data, train=False, transforms=self.test_transforms
             )
-            self.dims = getattr(self, "dims", self.test_data[0].image.shape)
+            self.dims = getattr(self, "dims", self.test_data[0][0].shape)
 
     @implements(pl.LightningDataModule)
     def train_dataloader(self) -> DataLoader:
