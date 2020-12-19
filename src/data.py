@@ -311,7 +311,7 @@ class AcreCascadeDataset(_SizedDataset):
         # The test data only needs to be processed once since we don't generate patches for it
         folders_to_check = [self.train_folder_name]
         LOGGER.info(
-            "Processing image-files."
+            "Processing image-files. "
             "This may take a while as patches needed to be generated for the training data."
         )
         if not (Path(self.test_folder_name) / "data.csv").exists():
