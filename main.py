@@ -12,11 +12,12 @@ from hydra.utils import to_absolute_path
 from omegaconf import MISSING, OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from torch.nn.modules.loss import CrossEntropyLoss
+
 from src.data import AcreCascadeDataModule
 from src.loss import DiceLoss, MultiLoss
 from src.model import UNetSegModel
 from src.utils import generate_timestamp
-from torch.nn.modules.loss import CrossEntropyLoss
 
 Team = Enum("Team", "Bipbip Pead Roseau Weedelec")
 Crop = Enum("Crop", "Haricot Mais")
@@ -110,6 +111,7 @@ def main(cfg: Config) -> None:
         max_epochs=cfg.epochs,
         precision=16 if cfg.use_amp else 32,
         log_every_n_steps=1,
+        accelerator="ddp" if cfg.gpus > 1 else "dp",
     )
 
     # ------------------------
