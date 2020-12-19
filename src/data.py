@@ -144,7 +144,7 @@ def _patches_from_image_mask_pair(
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
     """Generates corresponding patches from an image-mask pair."""
     image_t = TF.to_tensor(image)
-    mask_t = torch.as_tensor(np.array(mask), dtype=torch.int64).permute(2, 1, 0)  # type: ignore
+    mask_t = torch.as_tensor(np.array(mask), dtype=torch.int64).permute(2, 0, 1)  # type: ignore
     import pdb
 
     pdb.set_trace()
