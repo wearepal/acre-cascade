@@ -64,27 +64,28 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("train_loss", loss, prog_bar=True, logger=False)
-        logging_dict: Dict[str, Any] = {"training/loss": loss}
 
-        if batch_index % 50 == 0:
-            mask_list = []
-            for _img, _mask, _out in zip(img, mask, out):
-                mask_img = wandb.Image(
-                    to_pil_image(_img),
-                    masks={
-                        "predictions": {
-                            "mask_data": _out.argmax(dim=0).cpu().numpy(),
-                            "class_labels": CLASS_LABELS,
+        if self.logger is not None:
+            logging_dict: Dict[str, Any] = {"training/loss": loss}
+            if batch_index % 50 == 0:
+                mask_list = []
+                for _img, _mask, _out in zip(img, mask, out):
+                    mask_img = wandb.Image(
+                        to_pil_image(_img),
+                        masks={
+                            "predictions": {
+                                "mask_data": _out.argmax(dim=0).cpu().numpy(),
+                                "class_labels": CLASS_LABELS,
+                            },
+                            "groud_truth": {
+                                "mask_data": _mask.t().cpu().numpy(),
+                                "class_labels": CLASS_LABELS,
+                            },
                         },
-                        "groud_truth": {
-                            "mask_data": _mask.t().cpu().numpy(),
-                            "class_labels": CLASS_LABELS,
-                        },
-                    },
-                )
-                mask_list.append(mask_img)
-                logging_dict["training/predictions"] = mask_list
-        self.logger.experiment.log(logging_dict)
+                    )
+                    mask_list.append(mask_img)
+                    logging_dict["training/predictions"] = mask_list
+            self.logger.experiment.log(logging_dict)
 
         return loss
 
@@ -95,27 +96,28 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("val_loss", loss, prog_bar=True, logger=False)
-        logging_dict: Dict[str, Any] = {"validation/loss": loss}
 
-        if batch_idx == 0:
-            mask_list = []
-            for _img, _mask, _out in zip(img, mask, out):
-                mask_img = wandb.Image(
-                    to_pil_image(_img),
-                    masks={
-                        "predictions": {
-                            "mask_data": _out.argmax(dim=0).cpu().numpy(),
-                            "class_labels": CLASS_LABELS,
+        if self.logger is not None:
+            logging_dict: Dict[str, Any] = {"validation/loss": loss}
+            if batch_idx == 0:
+                mask_list = []
+                for _img, _mask, _out in zip(img, mask, out):
+                    mask_img = wandb.Image(
+                        to_pil_image(_img),
+                        masks={
+                            "predictions": {
+                                "mask_data": _out.argmax(dim=0).cpu().numpy(),
+                                "class_labels": CLASS_LABELS,
+                            },
+                            "groud_truth": {
+                                "mask_data": _mask.t().cpu().numpy(),
+                                "class_labels": CLASS_LABELS,
+                            },
                         },
-                        "groud_truth": {
-                            "mask_data": _mask.t().cpu().numpy(),
-                            "class_labels": CLASS_LABELS,
-                        },
-                    },
-                )
-                mask_list.append(mask_img)
-            logging_dict["validation/predictions"] = mask_list
-        self.logger.experiment.log(logging_dict)
+                    )
+                    mask_list.append(mask_img)
+                logging_dict["validation/predictions"] = mask_list
+            self.logger.experiment.log(logging_dict)
 
         return loss
 
