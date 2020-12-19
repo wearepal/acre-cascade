@@ -15,7 +15,7 @@ from torch.tensor import Tensor
 from torchvision.transforms.functional import to_pil_image
 import wandb
 
-from src.data import CLASS_LABELS, TestBatch, TrainBatch
+from src.data import CLASS_LABELS, TestBatch, TestTuple, TrainTuple
 from src.loss import Loss
 from src.submission_generation import Submission, sample_to_submission
 from src.utils import implements
@@ -58,7 +58,7 @@ class SegModel(pl.LightningModule, ABC):
         return [opt], [sch]
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: TrainBatch, batch_index: int) -> Tensor:
+    def training_step(self, batch: TrainTuple, batch_index: int) -> Tensor:
         img = batch[0].float()
         mask = batch[1].long()
         out = self(img)
@@ -89,7 +89,7 @@ class SegModel(pl.LightningModule, ABC):
         return loss
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: TrainBatch, batch_idx: int) -> Tensor:
+    def validation_step(self, batch: TrainTuple, batch_idx: int) -> Tensor:
         img = batch[0].float()
         mask = batch[1].long()
         out = self(img)
@@ -124,9 +124,9 @@ class SegModel(pl.LightningModule, ABC):
         """"Predict the mask of a single test image and prepare it for submission."""
         predicted_mask = self(batch[0]).argmax(dim=1)
         submission_i = sample_to_submission(
-            filename=batch[3],
-            team_name=batch[1],
-            crop_name=batch[2],
+            filename=batch[3][0],
+            team_name=batch[1][0],
+            crop_name=batch[2][0],
             mask=predicted_mask.squeeze().cpu().detach().numpy(),
         )
         submission_dict_i = asdict(submission_i)

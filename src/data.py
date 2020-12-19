@@ -39,7 +39,15 @@ from typing_inspect import get_args
 
 from src.utils import implements
 
-__all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
+__all__ = [
+    "AcreCascadeDataset",
+    "AcreCascadeDataModule",
+    "TrainTuple",
+    "TestTuple",
+    "TestBatch",
+    "Team",
+    "Crop",
+]
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,8 +55,9 @@ CLASS_LABELS: Final[Dict[int, str]] = {0: "background", 1: "crop", 2: "weed"}
 
 Team = Literal["Bipbip", "Pead", "Roseau", "Weedelec"]
 Crop = Literal["Haricot", "Mais"]
-TrainBatch = Tuple[Tensor, Tensor, Tensor, Tensor]
-TestBatch = Tuple[Tensor, Team, Crop, str]
+TrainTuple = Tuple[Tensor, Tensor, Tensor, Tensor]
+TestTuple = Tuple[Tensor, Team, Crop, str]
+TestBatch = Tuple[Tensor, List[Team], List[Crop], List[str]]
 InputShape = namedtuple("InputShape", ["c", "h", "w"])
 ImageSize = namedtuple("ImageSize", ["width", "height"])
 Transform = Callable[[Union[Image.Image, Tensor]], Tensor]
@@ -104,7 +113,7 @@ class _DataTransformer(_SizedDataset):
     def __len__(self) -> int:
         return len(self.base_dataset)
 
-    def __getitem__(self, index: int) -> Union[TrainBatch, TestBatch]:
+    def __getitem__(self, index: int) -> Union[TrainTuple, TestTuple]:
         data = self.base_dataset[index]
         if self.transforms is not None:
             data = (self.transforms(data[0]),) + data[1:]
@@ -368,7 +377,7 @@ class AcreCascadeDataset(_SizedDataset):
         return len(self.image_fps)
 
     @implements(_SizedDataset)
-    def __getitem__(self, index: int) -> Union[TrainBatch, TestBatch]:
+    def __getitem__(self, index: int) -> Union[TrainTuple, TestTuple]:
         image_fp = self.image_fps[index]
         image = Image.open(self._dataset_folder / image_fp)
         team = self.team_data[index]
