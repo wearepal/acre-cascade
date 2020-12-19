@@ -111,26 +111,6 @@ class _DataTransformer(_SizedDataset):
         return tuple(data)
 
 
-def _patches_from_image_mask_pair(
-    image: Image, mask: Image, kernel_size: int, stride: int
-) -> Iterator[Tuple[Image.Image, Image.Image]]:
-    """Generates corresponding patches from an image-mask pair."""
-    image_t = TF.to_tensor(image)
-    mask_t = TF.to_tensor(mask)
-    combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
-
-    patches = (
-        combined.unfold(dimension=1, size=kernel_size, step=stride)
-        .unfold(dimension=2, size=kernel_size, step=stride)
-        .reshape(6, -1, kernel_size, kernel_size)
-    )
-    image_patches, mask_patches = patches.chunk(2, dim=0)
-    for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
-        # Check that that the mask contains more than one class
-        if torch.var(mask_patch) > 0:  # pylint: disable=no-member
-            yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
-
-
 class IndexEncodeMask:
     """Encode an RGB mask into its corresponding segmentation classes."""
 
@@ -149,6 +129,31 @@ class IndexEncodeMask:
         for sum_rgb, class_ in self.mapping.items():
             mask[mask == sum_rgb] = class_
         return mask
+
+
+def _patches_from_image_mask_pair(
+    image: Image, mask: Image, kernel_size: int, stride: int, accept_threshold: float = 0.1
+) -> Iterator[Tuple[Image.Image, Image.Image]]:
+    """Generates corresponding patches from an image-mask pair."""
+    image_t = TF.to_tensor(image)
+    mask_t = TF.to_tensor(mask)
+    combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
+    raw_accept_threshold = accept_threshold * (kernel_size ** 2)
+
+    patches = (
+        combined.unfold(dimension=1, size=kernel_size, step=stride)
+        .unfold(dimension=2, size=kernel_size, step=stride)
+        .reshape(6, -1, kernel_size, kernel_size)
+    )
+    image_patches, mask_patches = patches.chunk(2, dim=0)
+    for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
+        # Check that that the mask contains more than just background
+        mask_patch_enc = mask_patch.clone().sum(0)
+        for sum_rgb, class_ in IndexEncodeMask.mapping.items():
+            mask_patch_enc[mask_patch_enc == sum_rgb] = class_
+        if (mask_patch_enc != 0).sum() > raw_accept_threshold:
+            if torch.var(mask_patch) > 0:  # pylint: disable=no-member
+                yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
 
 
 class AcreCascadeDataset(_SizedDataset):
