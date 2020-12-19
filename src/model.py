@@ -90,8 +90,8 @@ class SegModel(pl.LightningModule, ABC):
 
     @implements(pl.LightningModule)
     def validation_step(self, batch: TrainBatch, batch_idx: int) -> Tensor:
-        img = batch.image.float()
-        mask = batch.mask.long()
+        img = batch[0].float()
+        mask = batch[1].long()
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("val_loss", loss, prog_bar=True, logger=False)
@@ -122,11 +122,11 @@ class SegModel(pl.LightningModule, ABC):
     @implements(pl.LightningModule)
     def test_step(self, batch: TestBatch, batch_idx: int) -> Dict[str, Dict[str, Any]]:
         """"Predict the mask of a single test image and prepare it for submission."""
-        predicted_mask = self(batch.image).argmax(dim=1)
+        predicted_mask = self(batch[0]).argmax(dim=1)
         submission_i = sample_to_submission(
-            filename=batch.filename[0],
-            team_name=batch.team[0],
-            crop_name=batch.crop[0],
+            filename=batch[3],
+            team_name=batch[1],
+            crop_name=batch[2],
             mask=predicted_mask.squeeze().cpu().detach().numpy(),
         )
         submission_dict_i = asdict(submission_i)

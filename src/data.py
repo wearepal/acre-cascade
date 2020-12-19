@@ -23,13 +23,9 @@ from urllib.request import urlopen
 
 from PIL import Image
 import numpy as np
-import requests
-from tqdm import tqdm
-from typing_extensions import Final, Literal, Protocol
-
 import pandas as pd
 import pytorch_lightning as pl
-from src.utils import implements
+import requests
 import torch
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
@@ -37,7 +33,11 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
 import torchvision.transforms.functional as TF
+from tqdm import tqdm
+from typing_extensions import Final, Literal, Protocol
 from typing_inspect import get_args
+
+from src.utils import implements
 
 __all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
 
@@ -47,8 +47,8 @@ CLASS_LABELS: Final[Dict[int, str]] = {0: "background", 1: "crop", 2: "weed"}
 
 Team = Literal["Bipbip", "Pead", "Roseau", "Weedelec"]
 Crop = Literal["Haricot", "Mais"]
-TrainBatch = namedtuple("TrainBatch", ["image", "mask", "team", "crop"])
-TestBatch = namedtuple("TestBatch", ["image", "team", "crop", "filename"])
+TrainBatch = Tuple[Tensor, Tensor, Tensor, Tensor]
+TestBatch = Tuple[Tensor, Team, Crop, str]
 InputShape = namedtuple("InputShape", ["c", "h", "w"])
 ImageSize = namedtuple("ImageSize", ["width", "height"])
 Transform = Callable[[Union[Image.Image, Tensor]], Tensor]
@@ -108,9 +108,7 @@ class _DataTransformer(_SizedDataset):
         data = self.base_dataset[index]
         if self.transforms is not None:
             data = (self.transforms(data[0]),) + data[1:]
-        if self.train:
-            return TrainBatch(*data)
-        return TestBatch(*data)
+        return tuple(data)
 
 
 def _patches_from_image_mask_pair(
@@ -368,14 +366,9 @@ class AcreCascadeDataset(_SizedDataset):
         if self.mask_fps is not None:
             mask_t = Image.open(self._dataset_folder / self.mask_fps[index])
             mask = self._target_transform(mask_t)
-            return TrainBatch(image=image, mask=mask, team=team, crop=crop)
+            return image, mask, team, crop
         filename = Path(image_fp).stem
-        return TestBatch(
-            image=image,
-            team=self.team_decoder[int(team)],
-            crop=self.crop_decoder[int(crop)],
-            filename=filename,
-        )
+        return image, self.team_decoder[int(team)], self.crop_decoder[int(crop)], filename
 
 
 def _prop_random_split(dataset: _SizedDataset, props: Sequence[float]) -> List[Subset]:
