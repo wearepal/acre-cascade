@@ -140,13 +140,13 @@ def _patches_from_image_mask_pair(
     mask: Image.Image,
     kernel_size: int,
     stride: int,
-    accept_threshold: float = 0.1,
+    accept_threshold: float = 0.05,
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
     """Generates corresponding patches from an image-mask pair."""
     image_t = TF.to_tensor(image)
     mask_t = torch.as_tensor(np.array(mask), dtype=torch.int64).permute(2, 0, 1)  # type: ignore
     combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
-    raw_accept_threshold = accept_threshold * (kernel_size ** 2)
+    raw_accept_threshold = round(accept_threshold * (kernel_size ** 2))
 
     patches = (
         combined.unfold(dimension=1, size=kernel_size, step=stride)
@@ -157,9 +157,6 @@ def _patches_from_image_mask_pair(
     for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
         # Check that that the mask contains more than just background
         mask_patch_enc = IndexEncodeMask.encode(mask_patch.sum(0).clone())
-        import pdb
-
-        pdb.set_trace()
         if (mask_patch_enc != 0).sum() > raw_accept_threshold:
             yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch / 255.0))
 
