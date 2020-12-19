@@ -151,9 +151,11 @@ def _patches_from_image_mask_pair(
         mask_patch_enc = mask_patch.clone().sum(0)
         for sum_rgb, class_ in IndexEncodeMask.mapping.items():
             mask_patch_enc[mask_patch_enc == sum_rgb] = class_
+        import pdb
+
+        pdb.set_trace()
         if (mask_patch_enc != 0).sum() > raw_accept_threshold:
-            if torch.var(mask_patch) > 0:  # pylint: disable=no-member
-                yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
+            yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
 
 
 class AcreCascadeDataset(_SizedDataset):
