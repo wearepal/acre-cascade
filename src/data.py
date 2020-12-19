@@ -145,9 +145,6 @@ def _patches_from_image_mask_pair(
     """Generates corresponding patches from an image-mask pair."""
     image_t = TF.to_tensor(image)
     mask_t = torch.as_tensor(np.array(mask), dtype=torch.int64).permute(2, 0, 1)  # type: ignore
-    import pdb
-
-    pdb.set_trace()
     combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
     raw_accept_threshold = accept_threshold * (kernel_size ** 2)
 
@@ -159,7 +156,7 @@ def _patches_from_image_mask_pair(
     image_patches, mask_patches = patches.chunk(2, dim=0)
     for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
         # Check that that the mask contains more than just background
-        mask_patch_enc = IndexEncodeMask.encode(mask_patch.sum(-1))
+        mask_patch_enc = IndexEncodeMask.encode(mask_patch.sum(0).clone())
         import pdb
 
         pdb.set_trace()
