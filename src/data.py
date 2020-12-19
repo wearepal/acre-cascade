@@ -123,20 +123,28 @@ class IndexEncodeMask:
         365: 2,  # Target 2 (weed)
     }
 
-    def __call__(self, mask_img: Image.Image) -> Tensor:
-        # sum over the RGB channels and convert from WH to HW format
-        mask = torch.as_tensor(np.array(mask_img), dtype=torch.int64).sum(-1).t()  # type: ignore
-        for sum_rgb, class_ in self.mapping.items():
+    @staticmethod
+    def encode(mask: Tensor) -> Tensor:
+        for sum_rgb, class_ in IndexEncodeMask.mapping.items():
             mask[mask == sum_rgb] = class_
         return mask
 
+    def __call__(self, mask_img: Image.Image) -> Tensor:
+        # sum over the RGB channels and convert from WH to HW format
+        mask = torch.as_tensor(np.array(mask_img), dtype=torch.int64).sum(-1).t()  # type: ignore
+        return self.encode(mask)
+
 
 def _patches_from_image_mask_pair(
-    image: Image, mask: Image, kernel_size: int, stride: int, accept_threshold: float = 0.1
+    image: Image.Image,
+    mask: Image.Image,
+    kernel_size: int,
+    stride: int,
+    accept_threshold: float = 0.1,
 ) -> Iterator[Tuple[Image.Image, Image.Image]]:
     """Generates corresponding patches from an image-mask pair."""
     image_t = TF.to_tensor(image)
-    mask_t = TF.to_tensor(mask)
+    mask_t = torch.as_tensor(np.array(mask), dtype=torch.int64).permute(2, 1, 0)  # type: ignore
     combined = torch.cat([image_t, mask_t], dim=0)  # pylint: disable=no-member
     raw_accept_threshold = accept_threshold * (kernel_size ** 2)
 
@@ -148,14 +156,12 @@ def _patches_from_image_mask_pair(
     image_patches, mask_patches = patches.chunk(2, dim=0)
     for image_patch, mask_patch in zip(image_patches.unbind(dim=1), mask_patches.unbind(dim=1)):
         # Check that that the mask contains more than just background
-        mask_patch_enc = mask_patch.clone().sum(0)
-        for sum_rgb, class_ in IndexEncodeMask.mapping.items():
-            mask_patch_enc[mask_patch_enc == sum_rgb] = class_
+        mask_patch_enc = IndexEncodeMask.encode(mask_patch.sum(-1))
         import pdb
 
         pdb.set_trace()
         if (mask_patch_enc != 0).sum() > raw_accept_threshold:
-            yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch))
+            yield (TF.to_pil_image(image_patch), TF.to_pil_image(mask_patch / 255.0))
 
 
 class AcreCascadeDataset(_SizedDataset):
