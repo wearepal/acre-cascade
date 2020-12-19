@@ -59,8 +59,8 @@ class SegModel(pl.LightningModule, ABC):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: TrainBatch, batch_index: int) -> Tensor:
-        img = batch.image.float()
-        mask = batch.mask.long()
+        img = batch[0].float()
+        mask = batch[1].long()
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("train_loss", loss, prog_bar=True, logger=False)
