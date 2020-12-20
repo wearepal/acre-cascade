@@ -415,7 +415,6 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         data_dir: Union[str, Path],
         train_batch_size: int,
         teams: Optional[Union[Team, List[Team]]] = None,
-        test_teams: Optional[Union[Team, List[Team]]] = None,
         crop: Optional[Crop] = None,
         val_batch_size: Optional[int] = None,
         num_workers: int = 0,
@@ -431,7 +430,6 @@ class AcreCascadeDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.download = download
         self.teams = teams
-        self.test_teams = test_teams
         self.crop = crop
 
         if train_batch_size < 1:
@@ -488,7 +486,7 @@ class AcreCascadeDataModule(pl.LightningDataModule):
                 self.data_dir,
                 train=False,
                 download=False,
-                teams=self.test_teams,  # type: ignore
+                teams=self.teams,  # type: ignore
                 crop=self.crop,  # type: ignore
             )
             self.test_data = _DataTransformer(

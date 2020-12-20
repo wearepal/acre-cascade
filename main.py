@@ -43,7 +43,6 @@ class Config:
     seed: Optional[int] = 47
     download: bool = False
     teams: Optional[List[Team]] = None
-    test_teams: Optional[List[Team]] = None
     crop: Optional[Crop] = None
     xent_weight: float = 1.0
     dice_weight: float = 1.0
@@ -77,7 +76,6 @@ def main(cfg: Config) -> None:
         num_workers=cfg.num_workers,
         download=cfg.download,
         teams=None if cfg.teams is None else [team.name for team in cfg.teams],  # type: ignore
-        test_teams=None if cfg.test_teams is None else [team.name for team in cfg.test_teams],  # type: ignore
         crop=None if cfg.crop is None else cfg.crop.name,  # type: ignore
     )
 
