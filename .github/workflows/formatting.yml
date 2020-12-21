@@ -3,7 +3,7 @@ name: Black and isort
 on:
   pull_request:
     branches:
-    - master
+    - main
 
 jobs:
   format_code:
