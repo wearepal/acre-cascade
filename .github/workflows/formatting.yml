@@ -24,4 +24,4 @@ jobs:
         pip install isort
     - name: Check formatting with isort
       run: |
-        isort src
+        isort src --check-only -v
