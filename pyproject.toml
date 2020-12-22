@@ -37,6 +37,7 @@ known_third_party = [
   "typer",
   "typing_extensions",
   "typing_inspect",
+  "wandb",
 ]
 extra_standard_library = ["dataclasses"]
 line_length = 100
