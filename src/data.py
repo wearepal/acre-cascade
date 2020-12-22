@@ -23,13 +23,9 @@ from urllib.request import urlopen
 
 from PIL import Image
 import numpy as np
-import requests
-from tqdm import tqdm
-from typing_extensions import Final, Literal, Protocol
-
 import pandas as pd
 import pytorch_lightning as pl
-from src.utils import implements
+import requests
 import torch
 from torch.tensor import Tensor
 from torch.utils.data import Dataset
@@ -37,7 +33,11 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, random_split
 from torchvision.transforms import ToTensor
 import torchvision.transforms.functional as TF
+from tqdm import tqdm
+from typing_extensions import Final, Literal, Protocol
 from typing_inspect import get_args
+
+from src.utils import implements
 
 __all__ = ["AcreCascadeDataset", "AcreCascadeDataModule", "TrainBatch", "TestBatch", "Team", "Crop"]
 
