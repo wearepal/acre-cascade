@@ -2,8 +2,8 @@
 from pathlib import Path
 from typing import Union
 
-import numpy as np
 from PIL import Image
+import numpy as np
 
 
 def read_rgb_mask(img_path: Union[str, Path]) -> np.ndarray:

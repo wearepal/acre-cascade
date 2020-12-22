@@ -2,7 +2,6 @@
 import time
 from typing import Any, Callable, Type, TypeVar
 
-
 __all__ = ["implements", "generate_timestamp"]
 
 _F = TypeVar("_F", bound=Callable[..., Any])

@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pl_examples.domain_templates.unet import UNet
 import pytorch_lightning as pl
+from pytorch_lightning.metrics.functional import iou
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
@@ -96,9 +97,15 @@ class SegModel(pl.LightningModule, ABC):
         out = self(img)
         loss = self.loss_fn(out, mask)
         self.log("val_loss", loss, prog_bar=True, logger=False)
+        iou_score = out.new_zeros(())
+        for _mask, _out in zip(mask, out):
+            iou_score += iou(_out.argmax(dim=0), _mask, ignore_index=0)
+        iou_score /= len(out)
+        self.log("iou", iou_score, prog_bar=True, logger=False)
 
         if self.logger is not None:
             logging_dict: Dict[str, Any] = {"validation/loss": loss}
+            logging_dict["validation/iou"] = iou_score
             if batch_idx == 0:
                 mask_list = []
                 for _img, _mask, _out in zip(img, mask, out):
